@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base HTML and Body Styles */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f8fafc;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+::selection {
+  background-color: #bae6fd;
+  color: #0c4a6e;
+}
+
+/* Custom Healthcare Dashboard Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Custom shake animation for form errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}
+
+/* Hide scrollbar utility class */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom Extended Palette & Component Utilities */
+.text-slate-850 { color: #1e293b; }
+.border-slate-850 { border-color: rgba(30, 41, 59, 0.6); }
+.border-slate-250 { border-color: #e2e8f0; }
+.bg-slate-105 { background-color: #f1f5f9; }
+
+.text-slate-455 { color: #94a3b8; }
+.text-slate-505 { color: #64748b; }
+.text-slate-550 { color: #64748b; }
+.text-slate-605 { color: #475569; }
+.text-slate-655 { color: #475569; }
+
+.text-healthcare-650 { color: #0284c7; }
+.bg-healthcare-650 { background-color: #0284c7; }
+.bg-healthcare-650:hover { background-color: #0369a1; }
+.text-rose-455 { color: #f43f5e; }
+.text-red-650 { color: #dc2626; }
+
+.border-emerald-250 { border-color: #a7f3d0; }
+.border-indigo-250 { border-color: #c7d2fe; }
+.border-blue-250 { border-color: #bfdbfe; }
+.border-amber-250 { border-color: #fde68a; }
+.border-red-250 { border-color: #fecaca; }
