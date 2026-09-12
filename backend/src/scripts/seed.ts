@@ -19,6 +19,11 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nexora_health';
 
 async function seed() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: Database seeding is prohibited in production environment to prevent data loss.');
+    process.exit(1);
+  }
+
   try {
     console.log('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
@@ -165,9 +170,19 @@ async function seed() {
       passwordHash: diagHash,
       role: 'DIAGNOSTICS',
       labType: 'CARDIOLOGY',
-      name: 'ECG & Cardiology Lab',
+      name: 'Cardiology & ECG Lab Desk',
       email: 'ecg@nexora.com',
       phone: '9876543233',
+    });
+
+    await User.create({
+      username: 'mri',
+      passwordHash: diagHash,
+      role: 'DIAGNOSTICS',
+      labType: 'MRI',
+      name: 'MRI Scan Suite Desk',
+      email: 'mri@nexora.com',
+      phone: '9876543234',
     });
 
     const pharmUser = await User.create({

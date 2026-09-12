@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Block, Floor, Department, Ward, BedSet, Bed, Patient, Admission, Doctor } from '../models';
 import { emitSocketEvent } from '../config/socket';
+import { BedService } from '../services/bedService';
 
 export const getBeds = async (req: Request, res: Response) => {
   try {
@@ -122,60 +123,24 @@ export const updateBedStatus = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status, maintenanceReason } = req.body;
 
-    const allowedStatuses = ['AVAILABLE', 'CLEANING', 'MAINTENANCE', 'RESERVED', 'OCCUPIED'];
-    
-    let currentBed: any = null;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      currentBed = await Bed.findById(id);
-    }
-    if (!currentBed) {
-      currentBed = await Bed.findOne({ bedId: id });
-    }
-
-    if (!currentBed) {
-      return res.status(404).json({ message: 'Bed not found.' });
-    }
-
+    const allowedStatuses = ['AVAILABLE', 'CLEANING', 'MAINTENANCE', 'RESERVED', 'OCCUPIED', 'BLOCKED'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ message: `Invalid bed status. Can only transition to ${allowedStatuses.join(', ')}.` });
     }
 
-    currentBed.status = status;
-    if (status === 'MAINTENANCE') {
-      currentBed.maintenanceReason = maintenanceReason || 'Routine maintenance check';
-    } else {
-      currentBed.maintenanceReason = undefined;
-    }
-
-    if (status === 'AVAILABLE' || status === 'CLEANING' || status === 'MAINTENANCE') {
-      // Clear patient and admission associations when freed or placed in cleaning/maintenance
-      currentBed.currentPatientId = undefined;
-      currentBed.currentAdmissionId = undefined;
-      currentBed.reservedTime = undefined;
-      currentBed.occupiedTime = undefined;
-    }
-
-    await currentBed.save();
-
-    // Broadcast the update immediately
-    const updatedBed = await Bed.findById(currentBed._id)
-      .populate({
-        path: 'bedSetId',
-        populate: {
-          path: 'wardId',
-          populate: [
-            { path: 'departmentId', select: 'name code' },
-            { path: 'floorId', populate: { path: 'blockId' } },
-          ],
-        },
-      });
-
-    emitSocketEvent('bed:updated', updatedBed);
+    const updatedBed = await BedService.updateBedStatusControlled(
+      id,
+      status,
+      (req as any).user,
+      maintenanceReason
+    );
 
     return res.status(200).json({ message: 'Bed status updated successfully.', bed: updatedBed });
   } catch (error: any) {
     console.error('Update bed status error:', error);
-    return res.status(500).json({ message: 'Internal server error.', error: error.message });
+    const statusCode = error.message?.startsWith('INVALID_TRANSITION') ? 400 :
+                       error.message?.startsWith('BED_NOT_FOUND') ? 404 : 500;
+    return res.status(statusCode).json({ message: error.message || 'Internal server error.' });
   }
 };
 

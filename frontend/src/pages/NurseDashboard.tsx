@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { request } from '../services/api';
 import { useSocket } from '../context/SocketContext';
-import { Users, Stethoscope, Clock, CheckCircle, ArrowRight, ClipboardCheck } from 'lucide-react';
+import { Users, Stethoscope, Clock, CheckCircle, ClipboardCheck, Activity } from 'lucide-react';
+import { VitalsModal } from '../components/VitalsModal';
 
 const NurseDashboard: React.FC = () => {
   const { socket } = useSocket();
@@ -9,6 +10,7 @@ const NurseDashboard: React.FC = () => {
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [queue, setQueue] = useState<any[]>([]);
   const [expandedQueueId, setExpandedQueueId] = useState<string | null>(null);
+  const [selectedConsultForVitals, setSelectedConsultForVitals] = useState<any | null>(null);
 
   useEffect(() => {
     fetchDoctors();
@@ -57,15 +59,19 @@ const NurseDashboard: React.FC = () => {
     }
   };
 
-  const handleMarkReceived = async (consultId: string) => {
+  const handleVitalsSubmit = async (vitalsData: any) => {
+    if (!selectedConsultForVitals) return;
     try {
-      await request(`/consultations/${consultId}/status`, {
+      await request(`/consultations/${selectedConsultForVitals._id}/status`, {
         method: 'PUT',
-        body: JSON.stringify({ status: 'RECEIVED' })
+        body: JSON.stringify({
+          status: 'RECEIVED',
+          vitals: vitalsData,
+        }),
       });
       fetchQueue(selectedDoctorId);
     } catch (err: any) {
-      alert(err.message || 'Check-in failed.');
+      alert(err.message || 'Check-in with vitals failed.');
     }
   };
 
@@ -208,18 +214,25 @@ const NurseDashboard: React.FC = () => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleMarkReceived(item._id);
+                                  setSelectedConsultForVitals(item);
                                 }}
-                                className="bg-healthcare-600 hover:bg-healthcare-550 text-white font-extrabold px-3 py-1 rounded-lg text-[10px] transition shadow-sm flex items-center space-x-1"
+                                className="bg-healthcare-600 hover:bg-healthcare-550 text-white font-extrabold px-3 py-1.5 rounded-xl text-[10px] transition shadow-sm flex items-center space-x-1"
                               >
-                                <span>Confirm Arrival</span>
-                                <ArrowRight className="h-3 w-3" />
+                                <Activity className="h-3.5 w-3.5" />
+                                <span>Record Vitals & Check In</span>
                               </button>
                             ) : (
-                              <span className="text-[10px] text-blue-700 font-bold flex items-center space-x-1 bg-blue-50/50 p-1 rounded-lg border border-blue-150" onClick={(e) => e.stopPropagation()}>
-                                <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
-                                <span>Checked In</span>
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                {item.vitals && (
+                                  <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-mono font-bold text-slate-700">
+                                    BP {item.vitals.bloodPressure || 'N/A'} | {item.vitals.heartRate || 'N/A'} bpm
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-blue-700 font-bold flex items-center space-x-1 bg-blue-50/50 p-1 rounded-lg border border-blue-150" onClick={(e) => e.stopPropagation()}>
+                                  <CheckCircle className="h-3.5 w-3.5 text-blue-600" />
+                                  <span>Checked In</span>
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -269,6 +282,15 @@ const NurseDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Vitals Intake Modal */}
+      <VitalsModal
+        isOpen={!!selectedConsultForVitals}
+        onClose={() => setSelectedConsultForVitals(null)}
+        patientName={selectedConsultForVitals?.patientId?.userId?.name || 'Patient'}
+        patientIdCode={selectedConsultForVitals?.patientId?.patientId || 'P1001'}
+        onSubmitVitals={handleVitalsSubmit}
+      />
     </div>
   );
 };

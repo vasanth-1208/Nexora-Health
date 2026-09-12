@@ -8,6 +8,12 @@ export interface IUser extends Document {
   name: string;
   email?: string;
   phone?: string;
+  isActive: boolean;
+  failedLoginAttempts: number;
+  lockedUntil?: Date;
+  lastLoginAt?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +31,12 @@ const UserSchema = new Schema<IUser>(
     name: { type: String, required: true },
     email: { type: String },
     phone: { type: String },
+    isActive: { type: Boolean, default: true, index: true },
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date },
+    lastLoginAt: { type: Date },
+    passwordResetToken: { type: String, index: true },
+    passwordResetExpires: { type: Date },
   },
   { timestamps: true }
 );

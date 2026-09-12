@@ -5,6 +5,11 @@ import bcrypt from 'bcrypt';
 import { User } from '../models';
 
 async function seedLabs() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('FATAL: Database seeding is prohibited in production environment to prevent data loss.');
+    process.exit(1);
+  }
+
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error('No MONGODB_URI found in env');

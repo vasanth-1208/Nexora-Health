@@ -40,11 +40,20 @@ export const updateAvailability = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { isAvailable } = req.body;
+    const caller = (req as any).user;
 
-    const doctor = await Doctor.findByIdAndUpdate(id, { isAvailable }, { new: true });
+    const doctor = await Doctor.findById(id);
     if (!doctor) {
       return res.status(404).json({ message: 'Doctor not found.' });
     }
+
+    // IDOR check: Only ADMIN can update any doctor's availability; DOCTOR can only update their own
+    if (caller.role !== 'ADMIN' && doctor.userId.toString() !== caller.userId.toString()) {
+      return res.status(403).json({ message: 'Access denied: You can only update your own availability.' });
+    }
+
+    doctor.isAvailable = Boolean(isAvailable);
+    await doctor.save();
 
     return res.status(200).json({ message: 'Availability updated successfully.', doctor });
   } catch (error: any) {

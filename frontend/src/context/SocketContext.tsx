@@ -40,9 +40,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // Connect to WebSocket Server
-    const socketInstance = io('http://localhost:5000', {
+    // Connect to WebSocket Server with JWT Authentication Token
+    const token = localStorage.getItem('token');
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const socketHost = apiUrl.replace(/\/api$/, '');
+
+    const socketInstance = io(socketHost, {
       transports: ['websocket'],
+      auth: {
+        token: token || undefined,
+      },
     });
 
     setSocket(socketInstance);

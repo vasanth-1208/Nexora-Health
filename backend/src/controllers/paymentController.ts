@@ -8,6 +8,7 @@ import {
   Admission,
   PatientTimeline,
   Bed,
+  Invoice,
 } from '../models';
 import { emitSocketEvent } from '../config/socket';
 
@@ -51,6 +52,7 @@ export const getAllPayments = async (req: Request, res: Response) => {
 export const processPayment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params; // Payment DB ID
+    const { paymentMethod = 'CASH' } = req.body;
 
     const payment = await Payment.findById(id);
     if (!payment) {
@@ -61,11 +63,14 @@ export const processPayment = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Payment has already been processed.' });
     }
 
+    const operatorName = (req as any).user?.name || 'Billing Officer';
     payment.status = 'PAID';
+    payment.paymentMethod = paymentMethod;
+    payment.paidAt = new Date();
+    payment.processedBy = operatorName;
     await payment.save();
 
     const referenceId = payment.referenceId;
-    const operatorName = (req as any).user?.name || 'Billing Officer';
 
     // Update the associated entity based on serviceType
     if (payment.serviceType === 'CONSULTATION' && referenceId) {
@@ -77,7 +82,7 @@ export const processPayment = async (req: Request, res: Response) => {
       await PatientTimeline.create({
         patientId: payment.patientId,
         eventType: 'CONSULTATION_PAID',
-        description: `Payment of ₹${payment.amount} processed for Consultation. Waiting in queue.`,
+        description: `Payment of ₹${payment.amount} processed for Consultation via ${paymentMethod}. Waiting in queue.`,
         createdBy: operatorName,
       });
     } else if (payment.serviceType === 'REFERRAL' && referenceId) {
@@ -89,7 +94,7 @@ export const processPayment = async (req: Request, res: Response) => {
       await PatientTimeline.create({
         patientId: payment.patientId,
         eventType: 'REFERRAL_PAID',
-        description: `Payment of ₹${payment.amount} processed for doctor referral.`,
+        description: `Payment of ₹${payment.amount} processed for doctor referral via ${paymentMethod}.`,
         createdBy: operatorName,
       });
     } else if (payment.serviceType === 'DIAGNOSTIC' && referenceId) {
@@ -101,7 +106,7 @@ export const processPayment = async (req: Request, res: Response) => {
       await PatientTimeline.create({
         patientId: payment.patientId,
         eventType: 'DIAGNOSTIC_PAID',
-        description: `Payment of ₹${payment.amount} processed for diagnostic test: ${diag ? diag.testType : ''}. Scan is now QUEUED.`,
+        description: `Payment of ₹${payment.amount} processed for diagnostic test: ${diag ? diag.testType : ''} via ${paymentMethod}. Scan is now QUEUED.`,
         createdBy: operatorName,
       });
     } else if (payment.serviceType === 'PHARMACY' && referenceId) {
@@ -116,24 +121,28 @@ export const processPayment = async (req: Request, res: Response) => {
       await PatientTimeline.create({
         patientId: payment.patientId,
         eventType: 'PHARMACY_PAID',
-        description: `Payment of ₹${payment.amount} processed for prescribed medications.`,
+        description: `Payment of ₹${payment.amount} processed for prescribed medications via ${paymentMethod}.`,
         createdBy: operatorName,
       });
-    } else if (payment.serviceType === 'ADMISSION' && referenceId) {
-      const admission = await Admission.findById(referenceId);
+    } else if (payment.serviceType === 'ADMISSION') {
+      const admissionId = payment.admissionId || referenceId;
+      let admission = await Admission.findById(admissionId);
+      if (!admission && referenceId) {
+        const inv = await Invoice.findById(referenceId);
+        if (inv && inv.admissionId) {
+          admission = await Admission.findById(inv.admissionId);
+        }
+      }
+
       if (admission) {
-        // If final billing is paid, patient is ready for physical discharge
         if (admission.admissionStatus === 'DISCHARGE_RECOMMENDED') {
           admission.paymentStatus = 'PAID';
-          // Ready for discharge: Admission stays in DISCHARGE_RECOMMENDED state until physical check-out,
-          // but we set paymentStatus = PAID. The ward dashboard looks for:
-          // admissionStatus === 'DISCHARGE_RECOMMENDED' && paymentStatus === 'PAID' to display "READY FOR DISCHARGE"
           await admission.save();
 
           await PatientTimeline.create({
             patientId: payment.patientId,
             eventType: 'FINAL_PAYMENT_COMPLETED',
-            description: `Final stay payment of ₹${payment.amount} completed. Patient is READY FOR DISCHARGE.`,
+            description: `Final stay payment of ₹${payment.amount} completed via ${paymentMethod}. Patient is READY FOR DISCHARGE.`,
             createdBy: operatorName,
           });
 
@@ -150,6 +159,17 @@ export const processPayment = async (req: Request, res: Response) => {
             type: 'SUCCESS'
           });
         }
+      }
+
+      // Mark associated Invoice as PAID if exists
+      const invId = payment.invoiceId || (payment.referenceModel === 'INVOICE' ? referenceId : null);
+      if (invId) {
+        await Invoice.findByIdAndUpdate(invId, {
+          status: 'PAID',
+          paidAmount: payment.amount,
+          balanceAmount: 0,
+          paymentMethod,
+        });
       }
     }
 

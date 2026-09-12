@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import { Prescription, PharmacyQueue, Payment, PatientTimeline, Patient } from '../models';
+import { Prescription, PharmacyQueue, Payment, PatientTimeline, Patient, MedicineInventory } from '../models';
 import { emitSocketEvent } from '../config/socket';
+import { PatientTimelineService } from '../services/patientTimelineService';
 
 export const createPrescription = async (req: Request, res: Response) => {
   try {
@@ -117,10 +118,60 @@ export const updatePharmacyQueueStatus = async (req: Request, res: Response) => 
     }
 
     const oldStatus = queueItem.status;
+
+    // Idempotency: if status is already the requested status, return early without re-decrementing
+    if (oldStatus === status) {
+      return res.status(200).json({
+        message: `Queue status is already ${status}.`,
+        queueItem,
+      });
+    }
+
+    const prescription = await Prescription.findById((queueItem.prescriptionId as any)._id);
+
+    // Atomically validate and decrement inventory stock ONLY when moving to DISPENSED for the first time
+    if (status === 'DISPENSED' && oldStatus !== 'DISPENSED') {
+      if (prescription && prescription.medicines && prescription.medicines.length > 0) {
+        // Step 1: Pre-validation of stock sufficiency and expiration for all medicines
+        for (const med of prescription.medicines) {
+          const invItem = await MedicineInventory.findOne({
+            name: { $regex: new RegExp(`^${med.name.trim()}$`, 'i') }
+          });
+
+          if (invItem) {
+            // Check expiry
+            if (invItem.expiryDate && new Date(invItem.expiryDate).getTime() < Date.now()) {
+              return res.status(400).json({
+                message: `Cannot dispense expired medication: ${invItem.name} (Expired on ${invItem.expiryDate.toISOString().split('T')[0]}).`,
+                code: 'MEDICINE_EXPIRED'
+              });
+            }
+            // Check stock sufficiency
+            if (invItem.stockQuantity < med.quantity) {
+              return res.status(400).json({
+                message: `Insufficient inventory stock for ${invItem.name}. Available: ${invItem.stockQuantity}, Requested: ${med.quantity}.`,
+                code: 'INSUFFICIENT_STOCK'
+              });
+            }
+          }
+        }
+
+        // Step 2: Atomic decrement with non-negative guarantee
+        for (const med of prescription.medicines) {
+          await MedicineInventory.findOneAndUpdate(
+            {
+              name: { $regex: new RegExp(`^${med.name.trim()}$`, 'i') },
+              stockQuantity: { $gte: med.quantity }
+            },
+            { $inc: { stockQuantity: -med.quantity } }
+          );
+        }
+      }
+    }
+
     queueItem.status = status;
     await queueItem.save();
 
-    const prescription = await Prescription.findById(queueItem.prescriptionId._id);
     if (prescription) {
       // Update statuses of medicines inside prescription
       prescription.medicines.forEach(m => {
@@ -130,12 +181,12 @@ export const updatePharmacyQueueStatus = async (req: Request, res: Response) => 
     }
 
     const operatorName = (req as any).user?.name || 'Pharmacist';
-    await PatientTimeline.create({
-      patientId: queueItem.patientId._id,
-      eventType: 'PHARMACY_QUEUE_STATUS',
-      description: `Pharmacy queue status updated from ${oldStatus} to ${status}.`,
-      createdBy: operatorName,
-    });
+    await PatientTimelineService.logEvent(
+      queueItem.patientId._id,
+      'PHARMACY_QUEUE_STATUS',
+      `Pharmacy queue status updated from ${oldStatus} to ${status}.`,
+      operatorName
+    );
 
     if (status === 'READY') {
       // Notify patient

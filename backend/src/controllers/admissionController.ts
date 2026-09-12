@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
-import { Admission, Bed, Payment, Patient, Ward, WardChangeRequest, PatientTimeline } from '../models';
+import { Admission, Bed, Payment, Patient, Ward, WardChangeRequest, PatientTimeline, Invoice } from '../models';
 import { emitSocketEvent } from '../config/socket';
+import { BedService } from '../services/bedService';
+import { BillingService } from '../services/billingService';
+import { PatientTimelineService } from '../services/patientTimelineService';
 
 export const recommendAdmission = async (req: Request, res: Response) => {
   try {
@@ -171,28 +174,34 @@ export const payAndReserveAdmission = async (req: Request, res: Response) => {
       });
     }
 
-    // 1. Process payment (mark PAID immediately for prototype checkout)
+    // 1. Concurrency-Safe Atomic Bed Reservation
+    let reservedBed;
+    try {
+      reservedBed = await BedService.reserveBed(bedId, admission.patientId, admission._id);
+    } catch (err: any) {
+      if (err.message && err.message.includes('CONCURRENCY_CONFLICT')) {
+        return res.status(409).json({
+          message: 'Concurrency Conflict: This bed was just reserved by another receptionist. Please select an alternate bed.',
+        });
+      }
+      throw err;
+    }
+
+    // 2. Process payment (mark PAID immediately for admission reservation deposit)
     const payment = await Payment.create({
       patientId: admission.patientId,
       serviceType: 'ADMISSION',
       amount: Number(amount),
       status: 'PAID',
       referenceId: admission._id,
-      description: `Initial admission charges and bed reservation for bed ${bed.bedId}`,
+      description: `Initial admission deposit and bed reservation for bed ${reservedBed.bedId}`,
     });
-
-    // 2. Reserve the bed
-    bed.status = 'RESERVED';
-    bed.currentPatientId = admission.patientId;
-    bed.currentAdmissionId = admission._id;
-    bed.reservedTime = new Date();
-    await bed.save();
 
     // 3. Update Admission status to RESERVED and set bedId
     admission.admissionStatus = 'RESERVED';
     admission.paymentStatus = 'PAID';
     admission.paymentId = payment._id;
-    admission.bedId = bed._id;
+    admission.bedId = reservedBed._id;
     await admission.save();
 
     // Link admission to Patient currentAdmissionId
@@ -200,22 +209,21 @@ export const payAndReserveAdmission = async (req: Request, res: Response) => {
 
     // 4. Create timeline event
     const operatorName = (req as any).user?.name || 'Receptionist';
-    await PatientTimeline.create({
-      patientId: admission.patientId,
-      eventType: 'BED_RESERVED',
-      description: `Initial admission payment of ₹${amount} received. Bed ${bed.bedId} reserved in ${(bed.bedSetId as any).wardId.name}.`,
-      createdBy: operatorName,
-    });
+    await PatientTimelineService.logEvent(
+      admission.patientId,
+      'BED_RESERVED',
+      `Initial admission payment of ₹${amount} received. Bed ${reservedBed.bedId} reserved in ${(reservedBed.bedSetId as any)?.wardId?.name || 'Ward'}.`,
+      operatorName
+    );
 
     // 5. Broadcast Socket.IO events
-    emitSocketEvent('bed:updated', bed);
     emitSocketEvent('admission:updated', { patientId: admission.patientId, admission });
     emitSocketEvent('payment:updated', { patientId: admission.patientId, payment });
 
     return res.status(200).json({
       message: 'Admission payment received and bed reserved successfully.',
       admission,
-      bed,
+      bed: reservedBed,
       payment,
     });
   } catch (error: any) {
@@ -237,15 +245,12 @@ export const confirmAdmission = async (req: Request, res: Response) => {
       return res.status(400).json({ message: `Cannot admit. Current status is ${admission.admissionStatus}. Bed must be reserved first.` });
     }
 
-    const bed = await Bed.findById(admission.bedId);
-    if (!bed) {
-      return res.status(404).json({ message: 'Associated bed not found.' });
+    if (!admission.bedId) {
+      return res.status(400).json({ message: 'Associated bed not found on admission record.' });
     }
 
-    // 1. Set Bed to OCCUPIED
-    bed.status = 'OCCUPIED';
-    bed.occupiedTime = new Date();
-    await bed.save();
+    // 1. Set Bed to OCCUPIED atomically via BedService
+    const occupiedBed = await BedService.occupyBed(admission.bedId.toString(), admission.patientId, admission._id);
 
     // 2. Set Admission to OCCUPIED
     admission.admissionStatus = 'OCCUPIED';
@@ -254,21 +259,20 @@ export const confirmAdmission = async (req: Request, res: Response) => {
 
     // 3. Create timeline event
     const operatorName = (req as any).user?.name || 'Ward Staff';
-    await PatientTimeline.create({
-      patientId: admission.patientId,
-      eventType: 'PATIENT_ADMITTED',
-      description: `Patient physically arrived at ward. Bed ${bed.bedId} status updated to OCCUPIED.`,
-      createdBy: operatorName,
-    });
+    await PatientTimelineService.logEvent(
+      admission.patientId,
+      'PATIENT_ADMITTED',
+      `Patient physically arrived at ward. Bed ${occupiedBed.bedId} status updated to OCCUPIED.`,
+      operatorName
+    );
 
     // Broadcast
-    emitSocketEvent('bed:updated', bed);
     emitSocketEvent('admission:updated', { patientId: admission.patientId, admission });
 
     return res.status(200).json({
       message: 'Physical admission confirmed. Bed is now OCCUPIED.',
       admission,
-      bed,
+      bed: occupiedBed,
     });
   } catch (error: any) {
     console.error('Confirm admission error:', error);
@@ -470,18 +474,9 @@ export const handleWardChangeRequest = async (req: Request, res: Response) => {
     if (status === 'APPROVED') {
       // RULE 4: Ward change requires doctor approval. Update recommended ward
       admission.wardId = changeRequest.requestedWardId._id;
-      // If the patient already reserved a bed in the old ward, we release the bed!
+      // If the patient already reserved a bed in the old ward, we release the bed atomically!
       if (admission.bedId) {
-        const oldBed = await Bed.findById(admission.bedId);
-        if (oldBed) {
-          oldBed.status = 'AVAILABLE';
-          oldBed.currentPatientId = undefined;
-          oldBed.currentAdmissionId = undefined;
-          oldBed.reservedTime = undefined;
-          oldBed.occupiedTime = undefined;
-          await oldBed.save();
-          emitSocketEvent('bed:updated', oldBed);
-        }
+        await BedService.releaseReservation(admission.bedId);
         admission.bedId = undefined;
         admission.admissionStatus = 'RECOMMENDED';
       }
@@ -520,32 +515,25 @@ export const recommendDischarge = async (req: Request, res: Response) => {
     admission.admissionStatus = 'DISCHARGE_RECOMMENDED';
     await admission.save();
 
-    // Create a final discharge bill Payment record
-    const finalBillAmount = 8500; // Mock final checkout charge
-    const payment = await Payment.create({
-      patientId: admission.patientId,
-      serviceType: 'ADMISSION',
-      amount: finalBillAmount,
-      status: 'PENDING',
-      referenceId: admission._id,
-      description: `Final hospital stay and services charge.`,
-    });
-
+    // Dynamic Billing: Calculate length-of-stay charges and generate itemized invoice
     const operatorName = (req as any).user?.name || 'Doctor';
-    await PatientTimeline.create({
-      patientId: admission.patientId,
-      eventType: 'DISCHARGE_RECOMMENDED',
-      description: `Discharge recommended by physician. Final stay bill of ₹${finalBillAmount} generated.`,
-      createdBy: operatorName,
-    });
+    const { invoice, payment, breakdown } = await BillingService.createDischargeInvoice(admission._id.toString(), operatorName);
+
+    await PatientTimelineService.logEvent(
+      admission.patientId,
+      'DISCHARGE_RECOMMENDED',
+      `Discharge recommended by physician. Inpatient stay of ${breakdown.stayDays} days calculated. Final balance payable: ₹${breakdown.balancePayable} (${invoice.invoiceNumber}).`,
+      operatorName
+    );
 
     emitSocketEvent('admission:updated', { patientId: admission.patientId, admission });
-    emitSocketEvent('payment:updated', { patientId: admission.patientId, payment });
 
     return res.status(200).json({
-      message: 'Discharge recommended. Final bill generated.',
+      message: 'Discharge recommended. Dynamic inpatient bill generated successfully.',
       admission,
+      invoice,
       payment,
+      breakdown,
     });
   } catch (error: any) {
     console.error('Recommend discharge error:', error);
@@ -577,14 +565,12 @@ export const confirmDischarge = async (req: Request, res: Response) => {
     }
 
     // Physical checkout from ward
-    const bed = await Bed.findById(admission.bedId);
-    if (!bed) {
-      return res.status(404).json({ message: 'Associated bed not found.' });
+    if (!admission.bedId) {
+      return res.status(400).json({ message: 'No bed assigned to this admission.' });
     }
 
-    // RULE 8: After patient leaves the ward: OCCUPIED → CLEANING
-    bed.status = 'CLEANING';
-    await bed.save();
+    // RULE 8: After patient leaves the ward: OCCUPIED → CLEANING atomically via BedService
+    const cleanedBed = await BedService.sendToCleaning(admission.bedId.toString());
 
     admission.admissionStatus = 'DISCHARGED';
     admission.dischargedAt = new Date();
@@ -594,20 +580,19 @@ export const confirmDischarge = async (req: Request, res: Response) => {
     await Patient.findByIdAndUpdate(admission.patientId, { $unset: { currentAdmissionId: 1 } });
 
     const operatorName = (req as any).user?.name || 'Ward Staff';
-    await PatientTimeline.create({
-      patientId: admission.patientId,
-      eventType: 'PATIENT_LEFT_WARD',
-      description: `Patient physically checked out and left ward. Bed ${bed.bedId} moved to CLEANING.`,
-      createdBy: operatorName,
-    });
+    await PatientTimelineService.logEvent(
+      admission.patientId,
+      'PATIENT_LEFT_WARD',
+      `Patient physically checked out and left ward. Bed ${cleanedBed.bedId} moved to CLEANING.`,
+      operatorName
+    );
 
-    emitSocketEvent('bed:updated', bed);
     emitSocketEvent('admission:updated', { patientId: admission.patientId, admission });
 
     return res.status(200).json({
       message: 'Patient discharged. Bed has been sent for CLEANING.',
       admission,
-      bed,
+      bed: cleanedBed,
     });
   } catch (error: any) {
     console.error('Confirm discharge error:', error);
@@ -619,34 +604,10 @@ export const finishCleaning = async (req: Request, res: Response) => {
   try {
     const { bedId } = req.body; // Bed _id or bedId string
 
-    let query: any = { _id: bedId };
-    if (bedId.includes('-')) {
-      query = { bedId };
-    }
-
-    const bed = await Bed.findOne(query);
-    if (!bed) {
-      return res.status(404).json({ message: 'Bed not found.' });
-    }
-
-    if (bed.status !== 'CLEANING') {
-      return res.status(400).json({ message: `Bed is not in CLEANING state. Current status: ${bed.status}` });
-    }
-
-    // RULE 9: After cleaning: CLEANING → AVAILABLE
-    bed.status = 'AVAILABLE';
-    bed.currentPatientId = undefined;
-    bed.currentAdmissionId = undefined;
-    bed.reservedTime = undefined;
-    bed.occupiedTime = undefined;
-    await bed.save();
+    // RULE 9: After cleaning: CLEANING → AVAILABLE atomically via BedService
+    const bed = await BedService.finishCleaning(bedId);
 
     const operatorName = (req as any).user?.name || 'Ward Staff';
-    // If we have access to the last patient, we can log to their timeline or log generally.
-    // Clean bed status updated.
-    
-    emitSocketEvent('bed:updated', bed);
-
     return res.status(200).json({
       message: 'Bed cleaning completed. Bed is now AVAILABLE.',
       bed,

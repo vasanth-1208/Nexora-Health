@@ -260,32 +260,49 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Load resources based on active path and listen for global header refresh
+  // Load resources selectively based on active tab to optimize network performance
   useEffect(() => {
-    const handleGlobalRefresh = async () => {
+    const loadTabResources = async () => {
       setLoading(true);
-      await Promise.allSettled([
-        fetchStats(),
-        fetchHierarchy(),
-        fetchAllPayments(),
-        fetchStaff(),
-        fetchBeds(),
-        fetchPatients(),
-        fetchAdmissions(),
-        fetchDiagnostics(),
-        fetchPharmacyQueue(),
-        fetchEmergencies(),
-        fetchTimelineEvents(),
-        fetchConsultations()
-      ]);
+      const requests: Promise<any>[] = [fetchStats(), fetchHierarchy()];
+      
+      if (activeTab === 'stats') {
+        requests.push(
+          fetchAllPayments(),
+          fetchBeds(),
+          fetchPatients(),
+          fetchAdmissions(),
+          fetchConsultations(),
+          fetchEmergencies()
+        );
+      } else if (activeTab === 'structure' || activeTab === 'beds') {
+        requests.push(fetchBeds());
+      } else if (activeTab === 'users') {
+        requests.push(fetchStaff());
+      } else if (activeTab === 'patients' || activeTab === 'patient-flow') {
+        requests.push(
+          fetchPatients(),
+          fetchAdmissions(),
+          fetchConsultations(),
+          fetchDiagnostics(),
+          fetchPharmacyQueue(),
+          fetchEmergencies()
+        );
+      } else if (activeTab === 'payments') {
+        requests.push(fetchAllPayments(), fetchAdmissions());
+      } else if (activeTab === 'notifications' || activeTab === 'audit-logs') {
+        requests.push(fetchTimelineEvents());
+      }
+
+      await Promise.allSettled(requests);
       setLoading(false);
     };
 
-    handleGlobalRefresh();
+    loadTabResources();
 
-    window.addEventListener('nexora-refresh-data', handleGlobalRefresh);
+    window.addEventListener('nexora-refresh-data', loadTabResources);
     return () => {
-      window.removeEventListener('nexora-refresh-data', handleGlobalRefresh);
+      window.removeEventListener('nexora-refresh-data', loadTabResources);
     };
   }, [activeTab]);
 
@@ -710,7 +727,7 @@ const AdminDashboard: React.FC = () => {
               <div className="absolute left-0 bottom-0 w-1.5 h-12 bg-healthcare-500 rounded-r-lg" />
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Patients</p>
-                <p className="text-3xl font-black text-slate-850 mt-1.5">{stats.totalPatients || 48}</p>
+                <p className="text-3xl font-black text-slate-850 mt-1.5">{stats.totalPatients || patientsList.length || 0}</p>
                 <span className="text-[10px] text-slate-455 block mt-1">Active hospital registry</span>
               </div>
               <div className="p-4 bg-healthcare-50 text-healthcare-600 rounded-xl"><Users className="h-6 w-6" /></div>
@@ -720,7 +737,7 @@ const AdminDashboard: React.FC = () => {
               <div className="absolute left-0 bottom-0 w-1.5 h-12 bg-purple-500 rounded-r-lg" />
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Active Staff Doctors</p>
-                <p className="text-3xl font-black text-slate-850 mt-1.5">{stats.totalDoctors || 12}</p>
+                <p className="text-3xl font-black text-slate-850 mt-1.5">{stats.totalDoctors || 0}</p>
                 <span className="text-[10px] text-slate-455 block mt-1">Duty consultants online</span>
               </div>
               <div className="p-4 bg-purple-50 text-purple-600 rounded-xl"><Shield className="h-6 w-6" /></div>
@@ -731,7 +748,7 @@ const AdminDashboard: React.FC = () => {
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Bed Occupancy Rate</p>
                 <p className="text-3xl font-black text-healthcare-600 mt-1.5">
-                  {stats.totalBeds > 0 ? Math.round((stats.occupied / stats.totalBeds) * 100) : 62}%
+                  {stats.totalBeds > 0 ? Math.round((stats.occupied / stats.totalBeds) * 100) : 0}%
                 </p>
                 <span className="text-[10px] text-slate-455 block mt-1">Inpatient capacity allocated</span>
               </div>
@@ -742,7 +759,7 @@ const AdminDashboard: React.FC = () => {
               <div className="absolute left-0 bottom-0 w-1.5 h-12 bg-emerald-500 rounded-r-lg" />
               <div>
                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Hospital Revenue</p>
-                <p className="text-3xl font-black text-emerald-600 mt-1.5">₹{(calculateTotalRevenue() || 48500).toLocaleString()}</p>
+                <p className="text-3xl font-black text-emerald-600 mt-1.5">₹{calculateTotalRevenue().toLocaleString()}</p>
                 <span className="text-[10px] text-slate-455 block mt-1">Completed settlements today</span>
               </div>
               <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign className="h-6 w-6" /></div>
@@ -754,25 +771,25 @@ const AdminDashboard: React.FC = () => {
               <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                 <span className="text-slate-455 text-[10px] uppercase font-bold tracking-wide">Patients Today</span>
                 <span className="block text-2xl font-black text-slate-800 mt-1">
-                  {patientsList.length || 48}
+                  {patientsList.length}
                 </span>
               </div>
               <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-xl">
                 <span className="text-amber-800 text-[10px] uppercase font-bold tracking-wide">Waiting</span>
                 <span className="block text-2xl font-black text-amber-700 mt-1">
-                  {consultationsList.filter(c => c.status === 'WAITING' || c.status === 'RECEIVED').length || 12}
+                  {consultationsList.filter(c => c.status === 'WAITING' || c.status === 'RECEIVED').length}
                 </span>
               </div>
               <div className="bg-sky-50/50 border border-sky-100 p-4 rounded-xl">
                 <span className="text-sky-850 text-[10px] uppercase font-bold tracking-wide">Admitted</span>
                 <span className="block text-2xl font-black text-sky-700 mt-1">
-                  {admissionsList.filter(a => a.admissionStatus === 'OCCUPIED').length || 21}
+                  {admissionsList.filter(a => a.admissionStatus === 'OCCUPIED').length}
                 </span>
               </div>
               <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
                 <span className="text-emerald-805 text-[10px] uppercase font-bold tracking-wide">Discharged</span>
                 <span className="block text-2xl font-black text-emerald-700 mt-1">
-                  {admissionsList.filter(a => a.admissionStatus === 'DISCHARGED').length || 15}
+                  {admissionsList.filter(a => a.admissionStatus === 'DISCHARGED').length}
                 </span>
               </div>
             </div>
@@ -781,7 +798,7 @@ const AdminDashboard: React.FC = () => {
                 <div>
                   <span className="text-rose-800 text-[10px] uppercase font-bold block">Emergency Cases</span>
                   <span className="text-xl font-black text-rose-700 mt-1 block">
-                    {emergenciesList.filter(e => e.status === 'ACTIVE').length || 3}
+                    {emergenciesList.filter(e => e.status === 'ACTIVE' || e.isActive === true).length}
                   </span>
                 </div>
                 <Flame className="h-6 w-6 text-rose-550 shrink-0" />
@@ -790,7 +807,7 @@ const AdminDashboard: React.FC = () => {
                 <div>
                   <span className="text-teal-800 text-[10px] uppercase font-bold block">Active Consultations</span>
                   <span className="text-xl font-black text-teal-700 mt-1 block">
-                    {consultationsList.filter(c => c.status === 'WITH_DOCTOR').length || 17}
+                    {consultationsList.filter(c => c.status === 'WITH_DOCTOR').length}
                   </span>
                 </div>
                 <Activity className="h-6 w-6 text-teal-555 shrink-0" />
@@ -799,7 +816,7 @@ const AdminDashboard: React.FC = () => {
                 <div>
                   <span className="text-indigo-800 text-[10px] uppercase font-bold block">Pending Payments</span>
                   <span className="text-xl font-black text-indigo-700 mt-1 block">
-                    {allPayments.filter(p => p.status === 'PENDING').length || 8}
+                    {allPayments.filter(p => p.status === 'PENDING').length}
                   </span>
                 </div>
                 <CreditCard className="h-6 w-6 text-indigo-555 shrink-0" />
@@ -816,13 +833,13 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="flex gap-2 text-xs font-bold text-slate-600">
                 <span className="bg-slate-50 border border-slate-205 px-2.5 py-1 rounded-lg">
-                  Available: {bedsList.filter(b => b.status === 'AVAILABLE').length || stats.available || 30}
+                  Available: {bedsList.filter(b => b.status === 'AVAILABLE').length || stats.available || 0}
                 </span>
                 <span className="bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-lg">
-                  Reserved: {bedsList.filter(b => b.status === 'RESERVED').length || stats.reserved || 4}
+                  Reserved: {bedsList.filter(b => b.status === 'RESERVED').length || stats.reserved || 0}
                 </span>
                 <span className="bg-sky-50 border border-sky-100 px-2.5 py-1 rounded-lg">
-                  Occupied: {bedsList.filter(b => b.status === 'OCCUPIED').length || stats.occupied || 21}
+                  Occupied: {bedsList.filter(b => b.status === 'OCCUPIED').length || stats.occupied || 0}
                 </span>
               </div>
             </div>
@@ -1686,10 +1703,10 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3 text-xs font-bold">
               <span className="bg-emerald-50 text-emerald-800 border border-emerald-100 px-3 py-1.5 rounded-xl">
-                Settled: ₹{(calculateTotalRevenue() || 48500).toLocaleString()}
+                Settled: ₹{calculateTotalRevenue().toLocaleString()}
               </span>
               <span className="bg-amber-50 text-amber-800 border border-amber-100 px-3 py-1.5 rounded-xl">
-                Pending: ₹{allPayments.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0).toLocaleString() || '12,400'}
+                Pending: ₹{allPayments.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -2101,11 +2118,11 @@ const AdminDashboard: React.FC = () => {
                 <div key={idx} className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start justify-between">
                   <div className="space-y-1.5 text-xs text-rose-950 font-bold">
                     <span className="bg-rose-800 text-white px-2 py-0.5 rounded text-[9px] tracking-wider uppercase">Active Emergency</span>
-                    <h4 className="text-sm font-black text-rose-900 mt-1">Patient Profile ID: {e.patientIdCode || 'P1002'}</h4>
-                    <p>Clinical Ward: <span className="font-semibold text-rose-800">{e.description || 'Cardiac Arrest'}</span></p>
-                    <p>Attendant Physician: <span className="font-semibold text-rose-850">Dr. Sarah Jenkins</span></p>
+                    <h4 className="text-sm font-black text-rose-900 mt-1">Patient Profile ID: {e.patientIdCode || (e.patientId as any)?.patientId || 'Patient'}</h4>
+                    <p>Clinical Ward: <span className="font-semibold text-rose-800">{e.wardName || (e.wardId as any)?.name || e.description || 'Emergency Ward'}</span></p>
+                    <p>Attendant Physician: <span className="font-semibold text-rose-850">{e.doctorName || (e.doctorId as any)?.userId?.name || 'Emergency Attendant'}</span></p>
                   </div>
-                  <span className="text-rose-455 text-[10px]">{new Date(e.createdAt || Date.now()).toLocaleTimeString()}</span>
+                  <span className="text-rose-455 text-[10px]">{e.createdAt ? new Date(e.createdAt).toLocaleTimeString() : 'Active'}</span>
                 </div>
               ))
             )}

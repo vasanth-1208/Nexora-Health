@@ -35,7 +35,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
       case 'DOCTOR': return <Navigate to="/doctor/dashboard" replace />;
       case 'NURSE': return <Navigate to="/nurse/dashboard" replace />;
       case 'WARD_STAFF': return <Navigate to="/ward/dashboard" replace />;
-      case 'DIAGNOSTICS': return <Navigate to="/diagnostics/dashboard" replace />;
+      case 'DIAGNOSTICS':
+        if (user.labType === 'XRAY') return <Navigate to="/diagnostics/xray" replace />;
+        if (user.labType === 'CTSCAN') return <Navigate to="/diagnostics/ctscan" replace />;
+        if (user.labType === 'PATHOLOGY') return <Navigate to="/diagnostics/pathology" replace />;
+        if (user.labType === 'CARDIOLOGY') return <Navigate to="/diagnostics/cardiology" replace />;
+        if (user.labType === 'MRI') return <Navigate to="/diagnostics/mri" replace />;
+        return <Navigate to="/diagnostics/dashboard" replace />;
       case 'PHARMACY': return <Navigate to="/pharmacy/dashboard" replace />;
       case 'BILLING': return <Navigate to="/billing/dashboard" replace />;
       case 'PATIENT': return <Navigate to="/patient/dashboard" replace />;
@@ -112,6 +118,8 @@ function App() {
             >
               <Route path="dashboard" element={<DoctorDashboard />} />
               <Route path="admissions" element={<DoctorDashboard />} />
+              <Route path="inpatients" element={<DoctorDashboard />} />
+              <Route path="ward-changes" element={<DoctorDashboard />} />
             </Route>
 
             <Route
@@ -148,6 +156,14 @@ function App() {
               }
             >
               <Route path="dashboard" element={<DiagnosticsDashboard />} />
+              <Route path="all" element={<DiagnosticsDashboard />} />
+              <Route path="xray" element={<DiagnosticsDashboard />} />
+              <Route path="ctscan" element={<DiagnosticsDashboard />} />
+              <Route path="pathology" element={<DiagnosticsDashboard />} />
+              <Route path="cardiology" element={<DiagnosticsDashboard />} />
+              <Route path="ecg" element={<DiagnosticsDashboard />} />
+              <Route path="mri" element={<DiagnosticsDashboard />} />
+              <Route path="ultrasound" element={<DiagnosticsDashboard />} />
             </Route>
 
             <Route

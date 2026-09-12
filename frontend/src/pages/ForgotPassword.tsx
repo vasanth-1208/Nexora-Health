@@ -14,24 +14,34 @@ const ForgotPassword: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   // UI status
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleRequestOtp = (e: React.FormEvent) => {
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!username) {
-      setError('Please enter your User ID.');
+      setError('Please enter your User ID or Email.');
       return;
     }
     setLoading(true);
-    // Simulate sending OTP
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await request('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ username })
+      });
+      if (res?.resetToken) {
+        setResetToken(res.resetToken);
+      }
       setStep('VERIFY_OTP');
-    }, 800);
+    } catch (err: any) {
+      setError(err.message || 'Failed to request verification code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = (e: React.FormEvent) => {
@@ -41,8 +51,8 @@ const ForgotPassword: React.FC = () => {
       setError('Please enter verification code.');
       return;
     }
-    if (otp !== '123456') {
-      setError('Invalid verification code. Please try again.');
+    if (otp !== '123456' && otp.length < 4) {
+      setError('Invalid verification code. Please enter a valid code.');
       return;
     }
     setStep('RESET_PASSWORD');
@@ -60,12 +70,16 @@ const ForgotPassword: React.FC = () => {
       setError('Passwords do not match.');
       return;
     }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
 
     setLoading(true);
     try {
       await request('/auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({ username, newPassword })
+        body: JSON.stringify({ token: resetToken, newPassword })
       });
       setStep('SUCCESS');
     } catch (err: any) {

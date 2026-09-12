@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { User, Patient, PatientTimeline } from '../models';
+import { User, Patient, PatientTimeline, getNextSequence } from '../models';
+import { PatientTimelineService } from '../services/patientTimelineService';
 
 // Format DOB as DDMMYYYY for initial password
 const formatDOBForPassword = (dobString: string | Date): string => {
@@ -39,9 +40,9 @@ export const registerPatient = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Missing required patient information.' });
     }
 
-    // Generate unique Patient ID (e.g. P1002)
-    const patientCount = await Patient.countDocuments({});
-    const patientId = `P${1001 + patientCount}`;
+    // Atomically generate unique sequential Patient ID (e.g. P1002) - zero concurrency collision
+    const seq = await getNextSequence('patientId', 1000);
+    const patientId = `P${seq}`;
 
     // Hash the initial DOB-based password
     const rawDobPassword = formatDOBForPassword(dob);
@@ -82,12 +83,12 @@ export const registerPatient = async (req: Request, res: Response) => {
 
     // Create timeline event
     const operatorName = (req as any).user?.name || 'Reception Staff';
-    await PatientTimeline.create({
-      patientId: patient._id,
-      eventType: 'REGISTRATION',
-      description: `Patient registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
-      createdBy: operatorName,
-    });
+    await PatientTimelineService.logEvent(
+      patient._id,
+      'REGISTRATION',
+      `Patient registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
+      operatorName
+    );
 
     return res.status(201).json({
       message: 'Patient registered successfully.',
@@ -251,8 +252,9 @@ export const selfRegisterPatient = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Missing required patient information.' });
     }
 
-    const patientCount = await Patient.countDocuments({});
-    const patientId = `P${1001 + patientCount}`;
+    // Atomically generate unique sequential Patient ID
+    const seq = await getNextSequence('patientId', 1000);
+    const patientId = `P${seq}`;
 
     const rawDobPassword = formatDOBForPassword(dob);
     const passwordHash = await bcrypt.hash(rawDobPassword, 10);
@@ -287,12 +289,12 @@ export const selfRegisterPatient = async (req: Request, res: Response) => {
       assignedDoctors: [],
     });
 
-    await PatientTimeline.create({
-      patientId: patient._id,
-      eventType: 'REGISTRATION',
-      description: `Patient self-registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
-      createdBy: 'Self Registered',
-    });
+    await PatientTimelineService.logEvent(
+      patient._id,
+      'REGISTRATION',
+      `Patient self-registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
+      'Self Registered'
+    );
 
     return res.status(201).json({
       message: 'Patient registered successfully.',

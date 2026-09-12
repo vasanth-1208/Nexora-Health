@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { request } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -15,9 +16,22 @@ import {
   AlertCircle,
   Layers,
   Filter,
+  ArrowRight,
 } from 'lucide-react';
 
 export type LabCategory = 'ALL' | 'XRAY' | 'CTSCAN' | 'MRI' | 'PATHOLOGY' | 'CARDIOLOGY' | 'OTHER';
+
+export const getLabCategoryName = (cat: LabCategory): string => {
+  switch (cat) {
+    case 'XRAY': return 'X-Ray Lab';
+    case 'CTSCAN': return 'CT Scan Lab';
+    case 'PATHOLOGY': return 'Pathology Lab';
+    case 'CARDIOLOGY': return 'Cardiology / ECG';
+    case 'MRI': return 'MRI Scan';
+    case 'OTHER': return 'Ultrasound / Other';
+    default: return 'All Labs';
+  }
+};
 
 export const getLabCategory = (testType: string): LabCategory => {
   const t = (testType || '').toLowerCase().trim();
@@ -52,6 +66,8 @@ const formatDoctorName = (name?: string) => {
 const DiagnosticsDashboard: React.FC = () => {
   const { user } = useAuth();
   const { socket, addSystemNotification } = useSocket();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [scanQueue, setScanQueue] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -70,12 +86,69 @@ const DiagnosticsDashboard: React.FC = () => {
     return 'ALL';
   });
 
-  // Sync tab with user profile on mount
+  const isDedicatedLabUser = Boolean(user?.labType && user?.labType !== 'ALL');
+
+  // Sync active lab tab with URL route (or lock to user's assigned labType)
   useEffect(() => {
-    if (user?.labType && user.labType !== 'ALL') {
+    if (isDedicatedLabUser && user?.labType) {
+      const dedicatedPath =
+        user.labType === 'XRAY' ? '/diagnostics/xray' :
+        user.labType === 'CTSCAN' ? '/diagnostics/ctscan' :
+        user.labType === 'PATHOLOGY' ? '/diagnostics/pathology' :
+        user.labType === 'CARDIOLOGY' ? '/diagnostics/cardiology' :
+        user.labType === 'MRI' ? '/diagnostics/mri' : '/diagnostics/dashboard';
+
+      if (location.pathname.toLowerCase() !== dedicatedPath) {
+        navigate(dedicatedPath, { replace: true });
+      }
       setActiveLabTab(user.labType as LabCategory);
+      return;
     }
-  }, [user?.labType]);
+
+    const p = location.pathname.toLowerCase();
+    if (p.includes('/xray')) {
+      setActiveLabTab('XRAY');
+    } else if (p.includes('/ctscan')) {
+      setActiveLabTab('CTSCAN');
+    } else if (p.includes('/pathology') || p.includes('/blood')) {
+      setActiveLabTab('PATHOLOGY');
+    } else if (p.includes('/cardiology') || p.includes('/ecg')) {
+      setActiveLabTab('CARDIOLOGY');
+    } else if (p.includes('/mri')) {
+      setActiveLabTab('MRI');
+    } else if (p.includes('/ultrasound') || p.includes('/other')) {
+      setActiveLabTab('OTHER');
+    } else {
+      setActiveLabTab('ALL');
+    }
+  }, [location.pathname, user?.labType, isDedicatedLabUser, navigate]);
+
+  const handleSelectLabTab = (tab: LabCategory) => {
+    setActiveLabTab(tab);
+    switch (tab) {
+      case 'XRAY':
+        navigate('/diagnostics/xray');
+        break;
+      case 'CTSCAN':
+        navigate('/diagnostics/ctscan');
+        break;
+      case 'PATHOLOGY':
+        navigate('/diagnostics/pathology');
+        break;
+      case 'CARDIOLOGY':
+        navigate('/diagnostics/cardiology');
+        break;
+      case 'MRI':
+        navigate('/diagnostics/mri');
+        break;
+      case 'OTHER':
+        navigate('/diagnostics/ultrasound');
+        break;
+      default:
+        navigate('/diagnostics/dashboard');
+        break;
+    }
+  };
 
   useEffect(() => {
     fetchScanQueue();
@@ -306,125 +379,191 @@ const DiagnosticsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Modality / Lab Tabs */}
-      <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200">
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
-          <button
-            onClick={() => setActiveLabTab('ALL')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'ALL'
-                ? 'bg-healthcare-600 text-white shadow-md shadow-healthcare-600/20'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <Layers className="h-3.5 w-3.5" />
-            <span>All Labs</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.ALL}
-            </span>
-          </button>
+      {/* 2. Modality / Lab Tabs OR Dedicated Lab Station Header */}
+      {isDedicatedLabUser ? (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="p-3 bg-gradient-to-br from-healthcare-50 to-healthcare-100 text-healthcare-700 rounded-2xl border border-healthcare-200/80 font-black text-2xl shadow-inner">
+              {activeLabTab === 'XRAY' && '🩻'}
+              {activeLabTab === 'CTSCAN' && '⚡'}
+              {activeLabTab === 'PATHOLOGY' && '🩸'}
+              {activeLabTab === 'CARDIOLOGY' && '❤️'}
+              {activeLabTab === 'MRI' && '🧲'}
+              {activeLabTab === 'OTHER' && '🔬'}
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-base font-black text-slate-900">
+                  {getLabCategoryName(activeLabTab)} Workstation
+                </h2>
+                <span className="text-[10px] bg-healthcare-100 text-healthcare-800 font-extrabold px-2 py-0.5 rounded-full border border-healthcare-200 uppercase tracking-wide">
+                  Exclusive Lab Session
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                Terminal assigned to <strong className="text-slate-800">{user?.name}</strong> ({user?.userId}). Showing exclusively <strong className="text-healthcare-700">{getLabCategoryName(activeLabTab)}</strong> scan orders and arrival checks.
+              </p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => setActiveLabTab('XRAY')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'XRAY'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-2 ring-blue-400/40'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <span>🩻 X-Ray Lab</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'XRAY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.XRAY}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveLabTab('CTSCAN')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'CTSCAN'
-                ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20 ring-2 ring-purple-400/40'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <span>⚡ CT Scan Lab</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'CTSCAN' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.CTSCAN}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveLabTab('PATHOLOGY')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'PATHOLOGY'
-                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20 ring-2 ring-rose-400/40'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <span>🩸 Pathology Lab</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'PATHOLOGY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.PATHOLOGY}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveLabTab('CARDIOLOGY')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'CARDIOLOGY'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-400/40'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <span>❤️ ECG / Cardiology</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'CARDIOLOGY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.CARDIOLOGY}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveLabTab('MRI')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-              activeLabTab === 'MRI'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-            }`}
-          >
-            <span>🧲 MRI Scan</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              activeLabTab === 'MRI' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-            }`}>
-              {labCounts.MRI}
-            </span>
-          </button>
-
-          {labCounts.OTHER > 0 && (
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-600 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 self-end sm:self-auto shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Workstation Online</span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200">
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
             <button
-              onClick={() => setActiveLabTab('OTHER')}
+              onClick={() => handleSelectLabTab('ALL')}
               className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                activeLabTab === 'OTHER'
-                  ? 'bg-slate-800 text-white shadow-md'
+                activeLabTab === 'ALL'
+                  ? 'bg-healthcare-600 text-white shadow-md shadow-healthcare-600/20'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
               }`}
             >
-              <span>Other Tests</span>
+              <Layers className="h-3.5 w-3.5" />
+              <span>All Labs</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                activeLabTab === 'OTHER' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                activeLabTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
               }`}>
-                {labCounts.OTHER}
+                {labCounts.ALL}
               </span>
+            </button>
+
+            <button
+              onClick={() => handleSelectLabTab('XRAY')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeLabTab === 'XRAY'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 ring-2 ring-blue-400/40'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>🩻 X-Ray Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                activeLabTab === 'XRAY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {labCounts.XRAY}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSelectLabTab('CTSCAN')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeLabTab === 'CTSCAN'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20 ring-2 ring-purple-400/40'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>⚡ CT Scan Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                activeLabTab === 'CTSCAN' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {labCounts.CTSCAN}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSelectLabTab('PATHOLOGY')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeLabTab === 'PATHOLOGY'
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20 ring-2 ring-rose-400/40'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>🩸 Pathology Lab</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                activeLabTab === 'PATHOLOGY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {labCounts.PATHOLOGY}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSelectLabTab('CARDIOLOGY')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeLabTab === 'CARDIOLOGY'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 ring-2 ring-emerald-400/40'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>❤️ ECG / Cardiology</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                activeLabTab === 'CARDIOLOGY' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {labCounts.CARDIOLOGY}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSelectLabTab('MRI')}
+              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                activeLabTab === 'MRI'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+              }`}
+            >
+              <span>🧲 MRI Scan</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                activeLabTab === 'MRI' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {labCounts.MRI}
+              </span>
+            </button>
+
+            {labCounts.OTHER > 0 && (
+              <button
+                onClick={() => handleSelectLabTab('OTHER')}
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                  activeLabTab === 'OTHER'
+                    ? 'bg-slate-800 text-white shadow-md'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                }`}
+              >
+                <span>Other Tests</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                  activeLabTab === 'OTHER' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {labCounts.OTHER}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Lab Desk Active Banner */}
+      {activeLabTab !== 'ALL' && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md border border-slate-700">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-healthcare-500/20 text-healthcare-400 rounded-xl border border-healthcare-500/30">
+              <CheckSquare className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-black uppercase tracking-wider text-healthcare-400">
+                  {isDedicatedLabUser ? 'Workstation Mode' : 'Dedicated Lab Desk'}
+                </span>
+                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold">
+                  {getLabCategoryName(activeLabTab)} Only
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Showing exclusively {getLabCategoryName(activeLabTab)} scan orders and arrival checks.
+              </p>
+            </div>
+          </div>
+          {!isDedicatedLabUser && (
+            <button
+              onClick={() => handleSelectLabTab('ALL')}
+              className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center space-x-1.5 shrink-0 active:scale-95"
+            >
+              <span>View All Hospital Labs</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
-      </div>
+      )}
 
       {/* 3. Metric Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

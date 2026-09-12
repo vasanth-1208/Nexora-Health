@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { EmergencyAlert, Patient, PatientTimeline, Notification, Doctor } from '../models';
+import { EmergencyAlert, Patient, PatientTimeline, Notification, Doctor, Admission } from '../models';
 import { emitSocketEvent } from '../config/socket';
 
 export const triggerEmergency = async (req: Request, res: Response) => {
@@ -20,14 +20,31 @@ export const triggerEmergency = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Doctor not found.' });
     }
 
-    const patientName = (patient.userId as any).name;
-    const doctorName = (doctor.userId as any).name;
+    const patientName = (patient.userId as any)?.name || 'Patient';
+    const doctorName = (doctor.userId as any)?.name || 'Doctor';
+
+    // Correctly resolve ward from active admission
+    let resolvedWardId = undefined;
+    let resolvedAdmissionId = undefined;
+    let wardName = 'General Care';
+
+    if (patient.currentAdmissionId) {
+      const activeAdmission = await Admission.findById(patient.currentAdmissionId).populate('wardId');
+      if (activeAdmission) {
+        resolvedAdmissionId = activeAdmission._id;
+        if (activeAdmission.wardId) {
+          resolvedWardId = (activeAdmission.wardId as any)._id || activeAdmission.wardId;
+          wardName = (activeAdmission.wardId as any).name || 'Inpatient Ward';
+        }
+      }
+    }
 
     // Create the alert
     const alert = await EmergencyAlert.create({
       patientId,
       doctorId,
-      wardId: patient.currentAdmissionId ? (patient as any).wardId : undefined,
+      wardId: resolvedWardId,
+      admissionId: resolvedAdmissionId,
       description,
       isActive: true,
     });
@@ -36,18 +53,18 @@ export const triggerEmergency = async (req: Request, res: Response) => {
     await PatientTimeline.create({
       patientId,
       eventType: 'EMERGENCY_ALERT',
-      description: `CRITICAL: Emergency alert triggered by ${doctorName}. Condition: ${description}`,
+      description: `CRITICAL: Emergency alert triggered by ${doctorName} at ${wardName}. Condition: ${description}`,
       createdBy: doctorName,
     });
 
     // Save Notifications for role dashboards
-    const message = `EMERGENCY ALERT: Patient ${patientName} (${patient.patientId}) - ${description}`;
+    const message = `EMERGENCY ALERT: Patient ${patientName} (${patient.patientId}) in ${wardName} - ${description}`;
     
     await Notification.create([
       { recipientId: 'DOCTOR', message, type: 'EMERGENCY' },
       { recipientId: 'WARD_STAFF', message, type: 'EMERGENCY' },
       { recipientId: 'NURSE', message, type: 'EMERGENCY' },
-      { recipientId: patientId.toString(), message: `Emergency team has been alerted for your location.`, type: 'EMERGENCY' }
+      { recipientId: patientId.toString(), message: `Emergency team has been alerted for your location (${wardName}).`, type: 'EMERGENCY' }
     ]);
 
     // Broadcast Socket.IO events
@@ -57,6 +74,9 @@ export const triggerEmergency = async (req: Request, res: Response) => {
       patientIdCode: patient.patientId,
       patientName,
       doctorName,
+      wardId: resolvedWardId,
+      wardName,
+      admissionId: resolvedAdmissionId,
       description,
       timestamp: alert.createdAt
     });

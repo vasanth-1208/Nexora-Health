@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { request } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -140,8 +141,22 @@ const formatDoctorName = (name?: string) => {
 const DoctorDashboard: React.FC = () => {
   const { user } = useAuth();
   const { socket, addSystemNotification } = useSocket();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeSubTab, setActiveSubTab] = useState<'queue' | 'admissions' | 'ward-changes'>('queue');
   const [doctorProfile, setDoctorProfile] = useState<any | null>(null);
+
+  // Sync active subtab with current route URL
+  useEffect(() => {
+    const p = location.pathname.toLowerCase();
+    if (p.includes('/admissions') || p.includes('/inpatients')) {
+      setActiveSubTab('admissions');
+    } else if (p.includes('/ward-changes')) {
+      setActiveSubTab('ward-changes');
+    } else {
+      setActiveSubTab('queue');
+    }
+  }, [location.pathname]);
 
   // Lists
   const [patientQueue, setPatientQueue] = useState<any[]>([]);
@@ -481,7 +496,7 @@ const DoctorDashboard: React.FC = () => {
           }
         }
 
-        await request('/referrals/create', {
+        await request('/referrals', {
           method: 'POST',
           body: JSON.stringify({
             patientId: selectedPatientRecord._id,
@@ -905,6 +920,7 @@ const DoctorDashboard: React.FC = () => {
             onClick={() => {
               setActiveSubTab('queue');
               setSelectedPatientRecord(null);
+              navigate('/doctor/dashboard');
             }}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
               activeSubTab === 'queue'
@@ -919,6 +935,7 @@ const DoctorDashboard: React.FC = () => {
             onClick={() => {
               setActiveSubTab('admissions');
               setSelectedPatientRecord(null);
+              navigate('/doctor/admissions');
             }}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
               activeSubTab === 'admissions'
@@ -933,6 +950,7 @@ const DoctorDashboard: React.FC = () => {
             onClick={() => {
               setActiveSubTab('ward-changes');
               setSelectedPatientRecord(null);
+              navigate('/doctor/ward-changes');
             }}
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${
               activeSubTab === 'ward-changes'
@@ -1185,6 +1203,59 @@ const DoctorDashboard: React.FC = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* Nurse Triage & Vitals Banner */}
+                  {activeConsultation?.vitals && (
+                    <div className="mb-4 p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1.5 text-xs font-black text-blue-900">
+                          <Activity className="h-4 w-4 text-healthcare-600" />
+                          <span>NURSE TRIAGE & VITALS INTAKE</span>
+                        </div>
+                        <span className={`text-[9px] font-mono font-extrabold uppercase px-2 py-0.5 rounded border ${
+                          activeConsultation.vitals.triagePriority === 'EMERGENCY'
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : activeConsultation.vitals.triagePriority === 'URGENT'
+                            ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        }`}>
+                          TRIAGE: {activeConsultation.vitals.triagePriority}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs font-semibold">
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">BP</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.bloodPressure || 'N/A'}</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">Heart Rate</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.heartRate ? `${activeConsultation.vitals.heartRate} bpm` : 'N/A'}</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">SpO2</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.spO2 ? `${activeConsultation.vitals.spO2}%` : 'N/A'}</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">Temp</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.temperature ? `${activeConsultation.vitals.temperature}°F` : 'N/A'}</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">Resp Rate</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.respiratoryRate ? `${activeConsultation.vitals.respiratoryRate}/m` : 'N/A'}</span>
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-blue-100">
+                          <span className="text-[9px] text-slate-400 block font-bold uppercase">Weight</span>
+                          <span className="text-slate-800 font-mono font-black">{activeConsultation.vitals.weight ? `${activeConsultation.vitals.weight} kg` : 'N/A'}</span>
+                        </div>
+                      </div>
+                      {activeConsultation.vitals.nursingNotes && (
+                        <p className="text-[11px] text-slate-600 bg-white/80 p-2 rounded-lg border border-blue-100 font-medium">
+                          <span className="font-bold text-slate-700">Nurse Notes: </span>
+                          {activeConsultation.vitals.nursingNotes}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
                     <div>

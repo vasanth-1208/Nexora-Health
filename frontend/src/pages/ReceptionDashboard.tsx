@@ -93,6 +93,7 @@ const ReceptionDashboard: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [patientTimeline, setPatientTimeline] = useState<any[]>([]);
   const [visibleTimelineCount, setVisibleTimelineCount] = useState(3);
+  const [allocatingBed, setAllocatingBed] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -469,9 +470,10 @@ const ReceptionDashboard: React.FC = () => {
   // Bed allocation checkouts (Selection + payment = RESERVED)
   const handleBedAllocation = async () => {
     const targetAdmissionId = activeAdmission?._id || selectedPatient?.currentAdmissionId?._id || selectedPatient?.currentAdmissionId;
-    if (!selectedBedToAllocate || !targetAdmissionId) return;
+    if (!selectedBedToAllocate || !targetAdmissionId || allocatingBed) return;
     setAllocationError('');
     setAllocationSuccess(false);
+    setAllocatingBed(true);
 
     try {
       await request('/admissions/pay-and-reserve', {
@@ -493,6 +495,8 @@ const ReceptionDashboard: React.FC = () => {
     } catch (err: any) {
       setAllocationError(err.message || 'Bed reservation failed.');
       showToast(err.message || 'Bed reservation failed.', 'error');
+    } finally {
+      setAllocatingBed(false);
     }
   };
 
@@ -1433,10 +1437,10 @@ const ReceptionDashboard: React.FC = () => {
 
                           <button
                             onClick={handleBedAllocation}
-                            disabled={!selectedBedToAllocate}
+                            disabled={!selectedBedToAllocate || allocatingBed}
                             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-sm disabled:opacity-50 flex items-center justify-center space-x-1.5"
                           >
-                            <span>Checkout & Reserve Bed (Fixed Deposit ₹2000)</span>
+                            <span>{allocatingBed ? 'Securing Bed Reservation...' : 'Checkout & Reserve Bed (Deposit ₹2,000)'}</span>
                           </button>
                         </div>
                       ) : activeAdmission.admissionStatus === 'RESERVED' ? (

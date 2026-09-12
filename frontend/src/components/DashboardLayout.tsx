@@ -19,7 +19,10 @@ import {
   CreditCard,
   RefreshCw,
   BarChart2,
-  UserPlus
+  UserPlus,
+  ClipboardList,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 const DashboardLayout: React.FC = () => {
@@ -28,6 +31,7 @@ const DashboardLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   if (!user) {
     navigate('/login');
@@ -60,16 +64,13 @@ const DashboardLayout: React.FC = () => {
         return [
           { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
           { name: 'Patients', path: '/admin/patients', icon: Users },
-          { name: 'Patient Flow', path: '/admin/patient-flow', icon: Activity },
-          { name: 'Hospital Operations', path: '/admin/operations', icon: Building },
-          { name: 'Bed Management', path: '/admin/beds', icon: BedDouble },
-          { name: 'Clinical Services', path: '/admin/clinical-services', icon: CheckSquare },
+          { name: 'Structure', path: '/admin/hospital-structure', icon: Building },
+          { name: 'Bed Overview', path: '/admin/beds', icon: BedDouble },
           { name: 'Staff & Access', path: '/admin/users', icon: Users },
           { name: 'Billing & Payments', path: '/admin/payments', icon: CreditCard },
           { name: 'Emergency Center', path: '/admin/emergency', icon: AlertTriangle },
           { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart2 },
           { name: 'Notifications', path: '/admin/notifications', icon: Bell },
-          { name: 'Audit Logs', path: '/admin/audit-logs', icon: FileText },
         ];
       case 'RECEPTION':
         return [
@@ -82,6 +83,7 @@ const DashboardLayout: React.FC = () => {
         return [
           { name: 'Dashboard', path: '/doctor/dashboard', icon: LayoutDashboard },
           { name: 'Inpatients', path: '/doctor/admissions', icon: BedDouble },
+          { name: 'Ward Actions', path: '/doctor/ward-changes', icon: ClipboardList },
         ];
       case 'NURSE':
         return [
@@ -95,7 +97,7 @@ const DashboardLayout: React.FC = () => {
         ];
       case 'DIAGNOSTICS':
         return [
-          { name: 'Lab Queue', path: '/diagnostics/dashboard', icon: CheckSquare },
+          { name: 'Lab Queue Desk', path: '/diagnostics/dashboard', icon: CheckSquare },
         ];
       case 'PHARMACY':
         return [
@@ -160,13 +162,27 @@ const DashboardLayout: React.FC = () => {
       {/* Main Container */}
       <div className="flex flex-1 overflow-hidden relative">
         {/* Sidebar */}
-        <aside className="w-64 bg-white text-slate-600 border-r border-slate-200 flex flex-col justify-between shrink-0 hidden md:flex h-full overflow-hidden">
-          <div className="flex flex-col h-full overflow-hidden justify-between">
+        <aside
+          className={`bg-white text-slate-600 border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden ${
+            sidebarOpen ? 'w-64' : 'w-0 border-r-0'
+          }`}
+        >
+          <div className="flex flex-col h-full overflow-hidden justify-between w-64">
             <div className="flex flex-col flex-1 overflow-hidden">
-              {/* Logo */}
-              <div className="px-6 py-5 border-b border-slate-200 flex items-center space-x-2 shrink-0">
-                <Activity className="h-6 w-6 text-healthcare-650" />
-                <span className="font-extrabold text-lg tracking-tight text-slate-900">NEXORA HEALTH</span>
+              {/* Logo & Collapse Button */}
+              <div className="px-5 py-5 border-b border-slate-200 flex items-center justify-between shrink-0">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <Activity className="h-6 w-6 text-healthcare-650 shrink-0" />
+                  <span className="font-extrabold text-lg tracking-tight text-slate-900 truncate">NEXORA HEALTH</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(false)}
+                  title="Hide menu column"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0 ml-1"
+                >
+                  <PanelLeftClose className="h-5 w-5" />
+                </button>
               </div>
 
               {/* Nav Menu */}
@@ -207,7 +223,9 @@ const DashboardLayout: React.FC = () => {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-800 truncate">{user.name}</p>
                 <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border mt-0.5 ${getRoleBadgeColor(user.role)}`}>
-                  {user.role}
+                  {user.role === 'DIAGNOSTICS' && user.labType && user.labType !== 'ALL'
+                    ? `${user.labType} LAB`
+                    : user.role}
                 </span>
               </div>
             </div>
@@ -225,17 +243,46 @@ const DashboardLayout: React.FC = () => {
         {/* Content Panel */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Header */}
-          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shrink-0">
-            <div className="flex items-center md:hidden">
-              {/* Mobile Branding */}
-              <Activity className="h-6 w-6 text-healthcare-600 mr-2" />
-              <span className="font-extrabold tracking-tight text-slate-800">NEXORA HEALTH</span>
-            </div>
-            
-            <div className="hidden md:block">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Unified Operations Portal
-              </span>
+          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
+            <div className="flex items-center space-x-3">
+              {/* Show / Hide Sidebar Column Toggle Button right next to NEXORA HEALTH */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                title={sidebarOpen ? "Hide sidebar column" : "Show sidebar column"}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border active:scale-95 shrink-0 ${
+                  sidebarOpen
+                    ? 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                    : 'bg-healthcare-600 hover:bg-healthcare-700 text-white border-healthcare-600 ring-2 ring-healthcare-400/30 shadow-sm'
+                }`}
+              >
+                {sidebarOpen ? (
+                  <>
+                    <PanelLeftClose className="h-4 w-4 text-slate-500" />
+                    <span className="hidden sm:inline">Hide Column</span>
+                  </>
+                ) : (
+                  <>
+                    <PanelLeftOpen className="h-4 w-4 text-white" />
+                    <span>Show Column</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center space-x-1.5 pl-1">
+                <Activity className="h-5 w-5 text-healthcare-600" />
+                <span className="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight whitespace-nowrap">
+                  NEXORA HEALTH
+                </span>
+              </div>
+              
+              <span className="text-slate-300 hidden md:inline">|</span>
+
+              <div className="hidden md:block">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Unified Operations Portal
+                </span>
+              </div>
             </div>
 
             <div className="flex items-center space-x-2 relative">

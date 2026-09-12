@@ -77,6 +77,11 @@ export const updateConsultationStatus = async (req: Request, res: Response) => {
     const { id } = req.params; // Consultation ID
     const { status, clinicalNotes } = req.body;
 
+    const allowedStatuses = ['WAITING', 'RECEIVED', 'WITH_DOCTOR', 'COMPLETED', 'CANCELLED'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: `Invalid consultation status: ${status}` });
+    }
+
     const consultation = await Consultation.findById(id)
       .populate('patientId')
       .populate({
@@ -88,24 +93,89 @@ export const updateConsultationStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Consultation not found.' });
     }
 
-    const doctorName = (consultation.doctorId as any)?.userId?.name || 'Doctor';
+    const userRole = (req as any).user?.role;
     const oldStatus = consultation.status;
+
+    // Idempotent check
+    if (oldStatus === status) {
+      return res.status(200).json({ message: `Consultation already in ${status} status.`, consultation });
+    }
+
+    // Terminal states cannot be transitioned out of
+    if (oldStatus === 'COMPLETED' || oldStatus === 'CANCELLED') {
+      return res.status(400).json({
+        message: `INVALID_TRANSITION: Cannot modify consultation in terminal state (${oldStatus}).`,
+        code: 'INVALID_TRANSITION'
+      });
+    }
+
+    // Allowed transition map
+    const allowedTransitions: Record<string, string[]> = {
+      WAITING: ['RECEIVED', 'WITH_DOCTOR', 'CANCELLED'],
+      RECEIVED: ['WITH_DOCTOR', 'CANCELLED'],
+      WITH_DOCTOR: ['COMPLETED', 'CANCELLED'],
+    };
+
+    const validNextStates = allowedTransitions[oldStatus] || [];
+    if (!validNextStates.includes(status)) {
+      return res.status(400).json({
+        message: `INVALID_TRANSITION: Illegal transition from ${oldStatus} to ${status}.`,
+        code: 'INVALID_TRANSITION'
+      });
+    }
+
+    // Role restrictions:
+    // Only DOCTOR or ADMIN can complete clinical consultation
+    if (status === 'COMPLETED' && !['DOCTOR', 'ADMIN'].includes(userRole)) {
+      return res.status(403).json({
+        message: 'Only medical doctors or administrative supervisors can complete clinical consultations.',
+        code: 'UNAUTHORIZED_ROLE'
+      });
+    }
+
+    // Only DOCTOR or ADMIN can start consultation (WITH_DOCTOR)
+    if (status === 'WITH_DOCTOR' && !['DOCTOR', 'ADMIN'].includes(userRole)) {
+      return res.status(403).json({
+        message: 'Only medical doctors can conduct active clinical consultations.',
+        code: 'UNAUTHORIZED_ROLE'
+      });
+    }
+
+    const doctorName = (consultation.doctorId as any)?.userId?.name || 'Doctor';
     consultation.status = status;
 
     if (clinicalNotes !== undefined) {
       consultation.clinicalNotes = clinicalNotes;
     }
 
+    const operatorName = (req as any).user?.name || 'Hospital Staff';
+
+    if (req.body.vitals) {
+      consultation.vitals = {
+        bloodPressure: req.body.vitals.bloodPressure,
+        heartRate: req.body.vitals.heartRate ? Number(req.body.vitals.heartRate) : undefined,
+        temperature: req.body.vitals.temperature ? Number(req.body.vitals.temperature) : undefined,
+        spO2: req.body.vitals.spO2 ? Number(req.body.vitals.spO2) : undefined,
+        respiratoryRate: req.body.vitals.respiratoryRate ? Number(req.body.vitals.respiratoryRate) : undefined,
+        weight: req.body.vitals.weight ? Number(req.body.vitals.weight) : undefined,
+        triagePriority: req.body.vitals.triagePriority || 'ROUTINE',
+        nursingNotes: req.body.vitals.nursingNotes || '',
+        recordedBy: operatorName,
+        recordedAt: new Date(),
+      };
+    }
+
     await consultation.save();
 
     // Log timeline event depending on status transition
-    const operatorName = (req as any).user?.name || 'Hospital Staff';
     let timelineDesc = `Consultation status changed from ${oldStatus} to ${status}.`;
     let timelineEvent = 'CONSULTATION_STATUS';
 
     if (status === 'RECEIVED') {
       timelineEvent = 'PATIENT_RECEIVED';
-      timelineDesc = `Patient checked in by nurse at ${doctorName}'s clinic room entry.`;
+      const v = consultation.vitals;
+      const vitalsSummary = v ? ` [Vitals: BP ${v.bloodPressure || 'N/A'}, HR ${v.heartRate || 'N/A'} bpm, SpO2 ${v.spO2 || 'N/A'}%, Triage: ${v.triagePriority}]` : '';
+      timelineDesc = `Patient checked in by nurse at ${doctorName}'s clinic room door.${vitalsSummary}`;
     } else if (status === 'WITH_DOCTOR') {
       timelineEvent = 'CONSULTATION_STARTED';
       timelineDesc = `Consultation started with ${doctorName}.`;

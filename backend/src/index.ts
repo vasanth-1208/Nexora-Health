@@ -45,8 +45,16 @@ const ensureLabUsers = async () => {
     const defaultHash = await bcrypt.hash('Password@123', 10);
     const labUsers = [
       {
+        username: 'diagnostics',
+        name: 'Bob Ross (All Labs Lead)',
+        role: 'DIAGNOSTICS',
+        labType: 'ALL',
+        email: 'diagnostics@nexora.com',
+        phone: '9876543217',
+      },
+      {
         username: 'xray',
-        name: 'X-Ray Lab Desk',
+        name: 'X-Ray Technician Desk',
         role: 'DIAGNOSTICS',
         labType: 'XRAY',
         email: 'xray@nexora.com',
@@ -54,7 +62,7 @@ const ensureLabUsers = async () => {
       },
       {
         username: 'ctscan',
-        name: 'CT Scan Lab Desk',
+        name: 'CT Scan Specialist Desk',
         role: 'DIAGNOSTICS',
         labType: 'CTSCAN',
         email: 'ctscan@nexora.com',
@@ -62,7 +70,7 @@ const ensureLabUsers = async () => {
       },
       {
         username: 'pathology',
-        name: 'Pathology & Blood Lab',
+        name: 'Pathology & Blood Lab Desk',
         role: 'DIAGNOSTICS',
         labType: 'PATHOLOGY',
         email: 'pathology@nexora.com',
@@ -70,11 +78,19 @@ const ensureLabUsers = async () => {
       },
       {
         username: 'ecg',
-        name: 'ECG & Cardiology Lab',
+        name: 'Cardiology & ECG Lab Desk',
         role: 'DIAGNOSTICS',
         labType: 'CARDIOLOGY',
         email: 'ecg@nexora.com',
         phone: '9876543233',
+      },
+      {
+        username: 'mri',
+        name: 'MRI Scan Suite Desk',
+        role: 'DIAGNOSTICS',
+        labType: 'MRI',
+        email: 'mri@nexora.com',
+        phone: '9876543234',
       },
     ];
 
@@ -86,9 +102,13 @@ const ensureLabUsers = async () => {
           passwordHash: defaultHash,
         });
         console.log(`[Init] Created diagnostic lab user: ${u.username} (${u.name})`);
-      } else if (!existing.labType) {
+      } else {
         existing.labType = u.labType;
+        existing.name = u.name;
+        existing.role = 'DIAGNOSTICS';
+        // Preserve user password if account already exists
         await existing.save();
+        console.log(`[Init] Verified diagnostic lab user: ${u.username} (${u.name} - ${u.labType})`);
       }
     }
   } catch (err) {

@@ -94,7 +94,7 @@ export const getPatientDiagnostics = async (req: Request, res: Response) => {
 export const updateDiagnosticStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, findings, impression, reportText, modality, attachmentUrl } = req.body;
 
     const allowedStatuses = ['QUEUED', 'RECEIVED', 'IN_PROGRESS', 'COMPLETED'];
     if (!allowedStatuses.includes(status)) {
@@ -112,11 +112,32 @@ export const updateDiagnosticStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Diagnostic request not found.' });
     }
 
+    // Diagnostics Payment Integrity: Check payment requirement before advancing to RECEIVED or beyond
+    if (['RECEIVED', 'IN_PROGRESS', 'COMPLETED'].includes(status)) {
+      if (request.priority !== 'EMERGENCY' && request.cost > 0 && request.paymentId) {
+        const payment = await Payment.findById(request.paymentId);
+        if (payment && payment.status !== 'PAID') {
+          return res.status(400).json({
+            message: 'PAYMENT_REQUIRED: Diagnostic scan requires settled payment prior to lab check-in.',
+            code: 'PAYMENT_REQUIRED'
+          });
+        }
+      }
+    }
+
     const oldStatus = request.status;
     request.status = status;
     
+    if (modality) request.modality = modality;
+    if (findings) request.findings = findings;
+    if (impression) request.impression = impression;
+    if (reportText) request.reportText = reportText;
+    if (attachmentUrl) request.attachmentUrl = attachmentUrl;
+    if ((req as any).user?.name) request.technician = (req as any).user.name;
+    
     if (status === 'COMPLETED') {
       request.completionTime = new Date();
+      request.reportTimestamp = new Date();
     }
     
     await request.save();
@@ -129,12 +150,6 @@ export const updateDiagnosticStatus = async (req: Request, res: Response) => {
     if (status === 'RECEIVED') {
       timelineEvent = 'DIAGNOSTIC_RECEIVED';
       timelineDesc = `Patient received in diagnostics lab for ${request.testType}.`;
-
-      // If payment was pending, mark as PAID upon arrival check-in
-      if (request.paymentId) {
-        await Payment.findByIdAndUpdate(request.paymentId, { status: 'PAID' });
-        emitSocketEvent('payment:updated', { paymentId: request.paymentId, patientId: request.patientId._id, status: 'PAID' });
-      }
       
       // If patient is admitted, notify ward staff they arrived at scan room
       const patientProfile = await Patient.findById(request.patientId._id);
