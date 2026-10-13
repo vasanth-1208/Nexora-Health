@@ -38,12 +38,17 @@ export const initSocket = (server: HttpServer, frontendUrl: string): Server => {
       return;
     }
 
-    // Auto-join authorized channels for this user
+    // Auto-join authorized channels for this user (both plain and prefixed formats)
+    socket.join(user.role);
     socket.join(`room:role_${user.role}`);
+    socket.join(String(user.userId));
     socket.join(`room:user_${user.userId}`);
+    socket.join(user.username);
     socket.join(`room:user_${user.username}`);
     if (user.role === 'PATIENT') {
+      socket.join(`patient_${user.userId}`);
       socket.join(`room:patient_${user.userId}`);
+      socket.join(`patient_${user.username}`);
       socket.join(`room:patient_${user.username}`);
     }
 
@@ -53,13 +58,26 @@ export const initSocket = (server: HttpServer, frontendUrl: string): Server => {
 
       const isAuthorized =
         user.role === 'ADMIN' ||
+        roomName === user.role ||
         roomName === `room:role_${user.role}` ||
+        roomName === String(user.userId) ||
         roomName === `room:user_${user.userId}` ||
+        roomName === user.username ||
         roomName === `room:user_${user.username}` ||
-        roomName === `room:patient_${user.userId}` ||
-        roomName === `room:patient_${user.username}` ||
-        (['DOCTOR', 'NURSE', 'WARD_STAFF', 'RECEPTION', 'BILLING'].includes(user.role) && roomName.startsWith('room:patient_')) ||
-        (['DOCTOR', 'NURSE', 'WARD_STAFF'].includes(user.role) && roomName.startsWith('room:ward_'));
+        (user.role === 'PATIENT' && (
+          roomName === `patient_${user.userId}` ||
+          roomName === `patient_${user.username}` ||
+          roomName === `room:patient_${user.userId}` ||
+          roomName === `room:patient_${user.username}`
+        )) ||
+        (['DOCTOR', 'NURSE', 'WARD_STAFF', 'RECEPTION', 'BILLING'].includes(user.role) && (
+          roomName.startsWith('room:patient_') ||
+          roomName.startsWith('patient_')
+        )) ||
+        (['DOCTOR', 'NURSE', 'WARD_STAFF'].includes(user.role) && (
+          roomName.startsWith('room:ward_') ||
+          roomName.startsWith('ward_')
+        ));
 
       if (isAuthorized) {
         socket.join(roomName);
