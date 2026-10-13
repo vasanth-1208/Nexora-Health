@@ -104,7 +104,7 @@ const DEMO_LAB_ACCOUNTS: IDemoAccount[] = [
     badge: 'ALL LABS LEAD',
     badgeClass: 'bg-slate-100 text-slate-800 border-slate-200',
     icon: Layers,
-    description: 'Bob Ross — General supervisor across all modalities',
+    description: 'M. Balasubramanian — General supervisor across all modalities',
   },
 ];
 
@@ -118,7 +118,7 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'DOCTOR',
     badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
     icon: Stethoscope,
-    description: 'Dr. John Smith — Outpatient queue & inpatients census',
+    description: 'Dr. S. Karthikeyan — Outpatient queue & inpatients census',
   },
   {
     title: 'Reception & Admissions',
@@ -129,7 +129,7 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'RECEPTION',
     badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     icon: ClipboardList,
-    description: 'Patient check-in, appointments & bed allocations',
+    description: 'P. Malarvizhi — Patient check-in, appointments & bed allocations',
   },
   {
     title: 'Inpatient Ward Nursing',
@@ -140,7 +140,7 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'WARD STAFF',
     badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
     icon: Activity,
-    description: 'Alice Cooper — Ward beds, admissions & scan tracking',
+    description: 'S. Arumugam — Ward beds, admissions & scan tracking',
   },
   {
     title: 'Cashier & Billing Desk',
@@ -151,7 +151,7 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'BILLING',
     badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     icon: CreditCard,
-    description: 'Diana Prince — Collections, invoices & settlements',
+    description: 'K. Vijayalakshmi — Collections, invoices & settlements',
   },
   {
     title: 'Hospital Pharmacy',
@@ -162,7 +162,7 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'PHARMACY',
     badgeClass: 'bg-pink-100 text-pink-800 border-pink-200',
     icon: Pill,
-    description: 'Charlie Brown — Medicine dispense & pricing queue',
+    description: 'G. Muthukumar — Medicine dispense & pricing queue',
   },
   {
     title: 'System Administrator',
@@ -173,10 +173,10 @@ const DEMO_STAFF_ACCOUNTS: IDemoAccount[] = [
     badge: 'ADMIN',
     badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
     icon: Lock,
-    description: 'Full hospital structure, beds, staff & audit center',
+    description: 'Dr. K. Senthil Nathan — Full hospital structure, beds, staff & audit center',
   },
   {
-    title: 'Patient Portal (John Doe)',
+    title: 'Patient Portal (Murugan K.)',
     category: 'STAFF',
     username: 'P1001',
     password: '12051990',

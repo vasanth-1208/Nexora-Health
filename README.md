@@ -315,27 +315,29 @@ All test accounts are pre-seeded and ready for immediate evaluation:
 
 | Role | Username | Password | Notes / Specialty |
 |---|---|---|---|
-| **System Admin** | `admin` | `admin123` | Full hospital configuration & KPIs |
-| **Receptionist** | `reception` | `reception123` | Patient check-in & bed reservations |
-| **Doctor (Internal Medicine)** | `doctor1` | `doctor123` | Dr. John Smith (`/doctor/dashboard` & `/doctor/admissions`) |
-| **Doctor (Cardiology)** | `doctor2` | `doctor123` | Dr. Sarah Connor |
-| **Doctor (Orthopedics)** | `doctor3` | `doctor123` | Dr. David Tennant |
-| **Staff Nurse** | `nurse` | `nurse123` | Triage vitals & clinical intake |
-| **Ward Staff** | `ward` | `ward123` | Ward bed stays & physical arrival |
-| **Pharmacist** | `pharmacy` | `pharmacy123` | Dispensary & inventory reconciliation |
-| **Cashier / Billing Officer** | `billing` | `billing123` | Dynamic invoices & cashier desk |
-| **Patient** | `P1001` | `12051990` | John Doe (DOB: 12/05/1990) |
+| **System Admin** | `admin` | `admin123` | Dr. K. Senthil Nathan — Full hospital configuration & KPIs |
+| **Receptionist** | `reception` | `reception123` | P. Malarvizhi — Patient check-in & bed reservations |
+| **Doctor (Internal Medicine)** | `doctor1` | `doctor123` | Dr. S. Karthikeyan (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Doctor (Cardiology)** | `doctor2` | `doctor123` | Dr. Meenakshi Sundaram (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Doctor (Orthopedics)** | `doctor3` | `doctor123` | Dr. R. Vigneshwaran (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Staff Nurse** | `nurse` | `nurse123` | Vimala Devi M. — Triage vitals & clinical intake |
+| **Ward Staff** | `ward` | `ward123` | S. Arumugam — Ward bed stays & physical arrival |
+| **Pharmacist** | `pharmacy` | `pharmacy123` | G. Muthukumar — Dispensary & inventory reconciliation |
+| **Cashier / Billing Officer** | `billing` | `billing123` | K. Vijayalakshmi — Dynamic invoices & cashier desk |
+| **Patient** | `P1001` | `12051990` | Murugan K. (Chennai - DOB: 12/05/1990) |
+| **Patient (Inpatient CCU)** | `P1002` | `25081985` | Selvam R. (Coimbatore - Bed CCU-001) |
+| **Patient (Inpatient Ortho)** | `P1003` | `14021995` | Kavitha S. (Madurai - Bed ORTH-001) |
 
 ### 🔬 Specialized Diagnostic Lab Desks
 
 | Diagnostic Lab Desk | User ID | Password | Dedicated Route | Modality Scope |
 |---|---|---|---|---|
-| **🩻 X-Ray Lab Desk** | `xray` | `Password@123` | `/diagnostics/xray` | Extremity, bone, PA view, chest X-rays |
-| **⚡ CT Scan Imaging Desk** | `ctscan` | `Password@123` | `/diagnostics/ctscan` | CT brain, CT chest, tomography |
-| **🩸 Pathology & Blood Lab** | `pathology` | `Password@123` | `/diagnostics/pathology` | Blood CBC, LFT, KFT/RFT, sugar, lipid profiles |
-| **❤️ Cardiology & ECG Lab** | `ecg` | `Password@123` | `/diagnostics/cardiology` | ECG, 2D Echocardiogram, cardiac tests |
-| **🧲 MRI Scan Suite Desk** | `mri` | `Password@123` | `/diagnostics/mri` | MRI brain, MRI lumbar/cervical spine |
-| **🌐 All Labs Supervisor** | `diagnostics` | `Password@123` | `/diagnostics/dashboard` | Bob Ross — Full oversight across all labs |
+| **🩻 X-Ray Lab Desk** | `xray` | `Password@123` | `/diagnostics/xray` | Extremity, bone, PA view, chest X-rays (K. Selvaraj) |
+| **⚡ CT Scan Imaging Desk** | `ctscan` | `Password@123` | `/diagnostics/ctscan` | CT brain, CT chest, pelvis tomography (R. Anand) |
+| **🩸 Pathology & Blood Lab** | `pathology` | `Password@123` | `/diagnostics/pathology` | Blood CBC, LFT, KFT/RFT, lipid profiles (Dr. Kavitha S.) |
+| **❤️ Cardiology & ECG Lab** | `ecg` | `Password@123` | `/diagnostics/cardiology` | 12-lead ECG, 2D Echocardiogram, cardiac tests (T. Shanthi) |
+| **🧲 MRI Scan Suite Desk** | `mri` | `Password@123` | `/diagnostics/mri` | MRI brain, MRI lumbar/cervical spine (M. Saravanan) |
+| **🌐 All Labs Supervisor** | `diagnostics` | `Password@123` | `/diagnostics/dashboard` | M. Balasubramanian — Full oversight across all modalities |
 
 ---
 

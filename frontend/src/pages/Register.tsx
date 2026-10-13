@@ -124,7 +124,7 @@ const Register: React.FC = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="mt-1.5 block w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-healthcare-500 focus:bg-white transition text-xs"
-                      placeholder="e.g. Jane Doe"
+                      placeholder="e.g. Kavitha S."
                     />
                   </div>
                   <div>
@@ -187,7 +187,7 @@ const Register: React.FC = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="mt-1.5 block w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 px-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-healthcare-500 focus:bg-white transition text-xs"
-                      placeholder="jane@example.com"
+                      placeholder="kavitha@example.com"
                     />
                   </div>
                 </div>

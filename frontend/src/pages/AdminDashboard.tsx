@@ -615,11 +615,11 @@ const AdminDashboard: React.FC = () => {
     allPayments.forEach(p => {
       if (p.status === 'PAID') {
         const desc = (p.description || '').toLowerCase();
-        if (desc.includes('cardiology') || desc.includes('doctor1') || desc.includes('smith')) {
+        if (desc.includes('cardiology') || desc.includes('doctor2') || desc.includes('meenakshi')) {
           cardio += p.amount;
-        } else if (desc.includes('medicine') || desc.includes('doctor2') || desc.includes('connor')) {
+        } else if (desc.includes('medicine') || desc.includes('doctor1') || desc.includes('karthik')) {
           genmed += p.amount;
-        } else if (desc.includes('ortho') || desc.includes('doctor3') || desc.includes('tennant')) {
+        } else if (desc.includes('ortho') || desc.includes('doctor3') || desc.includes('vignesh')) {
           ortho += p.amount;
         } else {
           other += p.amount;
@@ -1025,7 +1025,7 @@ const AdminDashboard: React.FC = () => {
                         value={empName}
                         onChange={(e) => setEmpName(e.target.value)}
                         className="mt-1.5 block w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs text-slate-805 placeholder-slate-400 focus:outline-none focus:border-healthcare-500 transition"
-                        placeholder="e.g. Dr. John Doe"
+                        placeholder="e.g. Dr. S. Karthikeyan"
                       />
                     </div>
                   </div>
@@ -1746,37 +1746,11 @@ const AdminDashboard: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {allPayments.length === 0 ? (
-                  // Provide clean demo settlements values matching target Indian Rupees stats
-                  <>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-4 pl-4 font-bold text-slate-800">P1024</td>
-                      <td className="py-4 text-slate-550 font-semibold">Outpatient consultation with Dr. John Smith</td>
-                      <td className="py-4 font-black text-emerald-600">₹500</td>
-                      <td className="py-4"><span className="bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-black">PAID</span></td>
-                      <td className="py-4 pr-4 text-slate-400 font-medium text-[10px]">8/28/2026 at 06:41 PM</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-4 pl-4 font-bold text-slate-800">P1024</td>
-                      <td className="py-4 text-slate-550 font-semibold">Diagnostic Test: CT Scan Chest (URGENT)</td>
-                      <td className="py-4 font-black text-emerald-600">₹1,500</td>
-                      <td className="py-4"><span className="bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-black">PAID</span></td>
-                      <td className="py-4 pr-4 text-slate-400 font-medium text-[10px]">8/28/2026 at 06:41 PM</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-4 pl-4 font-bold text-slate-800">P1024</td>
-                      <td className="py-4 text-slate-550 font-semibold">Outpatient consultation with Dr. John Smith</td>
-                      <td className="py-4 font-black text-amber-600">₹500</td>
-                      <td className="py-4"><span className="bg-amber-500/10 text-amber-705 px-2 py-0.5 rounded-full text-[9px] font-black">PENDING</span></td>
-                      <td className="py-4 pr-4 text-slate-400 font-medium text-[10px]">8/28/2026 at 06:52 PM</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-4 pl-4 font-bold text-slate-800">P1031</td>
-                      <td className="py-4 text-slate-550 font-semibold">Outpatient consultation with Dr. Sarah Connor</td>
-                      <td className="py-4 font-black text-amber-600">₹5,000</td>
-                      <td className="py-4"><span className="bg-amber-500/10 text-amber-705 px-2 py-0.5 rounded-full text-[9px] font-black">PENDING</span></td>
-                      <td className="py-4 pr-4 text-slate-400 font-medium text-[10px]">8/28/2026 at 07:16 PM</td>
-                    </tr>
-                  </>
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-xs text-slate-400 font-semibold">
+                      No payment settlements recorded in the ledger yet.
+                    </td>
+                  </tr>
                 ) : (
                   allPayments
                     .filter(p => {
@@ -2154,7 +2128,7 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-rose-455 text-[10px]">Just now</span>
                     </div>
                     <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-slate-655 flex justify-between">
-                      <span>🔔 Duty leave: Dr. Sarah Connor requested sick leave for tomorrow morning</span>
+                      <span>🔔 Clinical schedule: Dr. Meenakshi Sundaram on-call for emergency cardiology theatre</span>
                       <span className="text-slate-400 text-[10px]">10 mins ago</span>
                     </div>
                     <div className="p-3.5 bg-amber-50 border border-amber-100 rounded-xl text-xs font-bold text-amber-850 flex justify-between">
@@ -2198,14 +2172,14 @@ const AdminDashboard: React.FC = () => {
           <div className="border-b border-slate-100 pb-4 shrink-0">
             <h2 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
               <BarChart2 className="h-5 w-5 text-healthcare-500" />
-              <span>Coimbatore Clinical Operations & Analytics Monitor</span>
+              <span>Tamil Nadu Clinical Operations & Analytics Monitor</span>
             </h2>
-            <p className="text-xs text-slate-505 mt-0.5">Aggregated real-time metrics for Coimbatore Medical Center (CMC) & PSG Health Alliance Networks.</p>
+            <p className="text-xs text-slate-505 mt-0.5">Aggregated real-time metrics for Nexora Health Tamil Nadu Network.</p>
           </div>
           <div className="flex-1 overflow-y-auto pr-1 custom-scroll mt-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-505 font-bold">
               <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl space-y-4">
-                <h4 className="text-slate-800 text-sm">Monthly Admissions Analytics &mdash; Coimbatore Network</h4>
+                <h4 className="text-slate-800 text-sm">Monthly Admissions Analytics &mdash; Tamil Nadu Network</h4>
                 <div className="h-32 flex items-end gap-3 pt-4 border-b border-slate-200">
                   <div className="flex-1 bg-healthcare-500/20 hover:bg-healthcare-500 h-[45%] rounded-t transition" title="June Admissions (112)" />
                   <div className="flex-1 bg-healthcare-500/20 hover:bg-healthcare-500 h-[65%] rounded-t transition" title="July Admissions (164)" />
@@ -2225,7 +2199,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="space-y-3">
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[10px]">
-                          <span>Cardiology (Dr. John Smith room)</span>
+                          <span>Cardiology (Dr. Meenakshi Sundaram)</span>
                           <span>₹{splits.cardio.amount.toLocaleString()} ({splits.cardio.pct}%)</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -2235,7 +2209,7 @@ const AdminDashboard: React.FC = () => {
 
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[10px]">
-                          <span>General Medicine (Dr. Sarah Connor room)</span>
+                          <span>General Medicine (Dr. S. Karthikeyan)</span>
                           <span>₹{splits.genmed.amount.toLocaleString()} ({splits.genmed.pct}%)</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -2245,7 +2219,7 @@ const AdminDashboard: React.FC = () => {
 
                       <div className="space-y-1">
                         <div className="flex justify-between items-center text-[10px]">
-                          <span>Orthopedics (Dr. David Tennant room)</span>
+                          <span>Orthopedics (Dr. R. Vigneshwaran)</span>
                           <span>₹{splits.ortho.amount.toLocaleString()} ({splits.ortho.pct}%)</span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -2301,26 +2275,11 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 ))}
                 {timelineEvents.length === 0 && (
-                  <>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 pl-4 text-slate-400 text-[10px]">10:42 AM</td>
-                      <td className="py-3 font-bold text-healthcare-600">Reception Staff</td>
-                      <td className="py-3"><span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-600">REGISTRATION</span></td>
-                      <td className="py-3 pr-4 text-slate-500">Registered patient Vasanth with ID P1024</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 pl-4 text-slate-400 text-[10px]">10:48 AM</td>
-                      <td className="py-3 font-bold text-healthcare-600">Dr. Kumar</td>
-                      <td className="py-3"><span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-600">ADMISSION_RECOMMENDED</span></td>
-                      <td className="py-3 pr-4 text-slate-500">Recommended clinical admission for patient P1024</td>
-                    </tr>
-                    <tr className="hover:bg-slate-50">
-                      <td className="py-3 pl-4 text-slate-400 text-[10px]">10:51 AM</td>
-                      <td className="py-3 font-bold text-healthcare-600">Billing Cashier</td>
-                      <td className="py-3"><span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase text-slate-600">PAYMENT_RECEIVED</span></td>
-                      <td className="py-3 pr-4 text-slate-500">Payment of ₹1,500 received for diagnostic test</td>
-                    </tr>
-                  </>
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-xs text-slate-400 font-semibold">
+                      No clinical timeline events recorded yet.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

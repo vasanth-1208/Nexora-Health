@@ -20,10 +20,11 @@ async function seedLabs() {
   const hash = await bcrypt.hash('Password@123', 10);
 
   const labAccounts = [
-    { username: 'xray', name: 'X-Ray Lab Desk', role: 'DIAGNOSTICS' as const, labType: 'XRAY', email: 'xray@nexora.com', phone: '9876543230' },
-    { username: 'ctscan', name: 'CT Scan Lab Desk', role: 'DIAGNOSTICS' as const, labType: 'CTSCAN', email: 'ctscan@nexora.com', phone: '9876543231' },
-    { username: 'pathology', name: 'Pathology & Blood Lab', role: 'DIAGNOSTICS' as const, labType: 'PATHOLOGY', email: 'pathology@nexora.com', phone: '9876543232' },
-    { username: 'ecg', name: 'ECG & Cardiology Lab', role: 'DIAGNOSTICS' as const, labType: 'CARDIOLOGY', email: 'ecg@nexora.com', phone: '9876543233' },
+    { username: 'xray', name: 'X-Ray Imaging Desk (K. Selvaraj)', role: 'DIAGNOSTICS' as const, labType: 'XRAY', email: 'xray@nexora.in', phone: '9840123460' },
+    { username: 'ctscan', name: 'CT Scan Specialist Desk (R. Anand)', role: 'DIAGNOSTICS' as const, labType: 'CTSCAN', email: 'ctscan@nexora.in', phone: '9840123461' },
+    { username: 'pathology', name: 'Pathology & Blood Lab (Dr. Kavitha S.)', role: 'DIAGNOSTICS' as const, labType: 'PATHOLOGY', email: 'pathology@nexora.in', phone: '9840123462' },
+    { username: 'ecg', name: 'Cardiology & ECG Lab Desk (T. Shanthi)', role: 'DIAGNOSTICS' as const, labType: 'CARDIOLOGY', email: 'ecg@nexora.in', phone: '9840123463' },
+    { username: 'mri', name: 'MRI Scan Suite Desk (M. Saravanan)', role: 'DIAGNOSTICS' as const, labType: 'MRI', email: 'mri@nexora.in', phone: '9840123464' },
   ];
 
   for (const acc of labAccounts) {

@@ -887,7 +887,7 @@ const ReceptionDashboard: React.FC = () => {
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
                     className="mt-1 block w-full bg-slate-50 border border-slate-250 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-healthcare-500 focus:border-healthcare-500 font-semibold"
-                    placeholder="e.g. John Doe"
+                    placeholder="e.g. Murugan K."
                   />
                 </div>
 
@@ -997,7 +997,7 @@ const ReceptionDashboard: React.FC = () => {
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     className="mt-1 block w-full bg-slate-50 border border-slate-250 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-healthcare-500 focus:border-healthcare-500 font-semibold"
-                    placeholder="e.g. johndoe@gmail.com"
+                    placeholder="e.g. murugan.k@gmail.com"
                   />
                 </div>
 
@@ -1034,7 +1034,7 @@ const ReceptionDashboard: React.FC = () => {
                     value={regAddress}
                     onChange={(e) => setRegAddress(e.target.value)}
                     className="mt-1 block w-full bg-slate-50 border border-slate-250 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-healthcare-500 focus:border-healthcare-500 font-semibold"
-                    placeholder="123 Street name, City"
+                    placeholder="e.g. 45/2, Anna Salai, T. Nagar, Chennai"
                   />
                 </div>
               </div>
@@ -1055,7 +1055,7 @@ const ReceptionDashboard: React.FC = () => {
                     value={regEmergName}
                     onChange={(e) => setRegEmergName(e.target.value)}
                     className="mt-1 block w-full bg-white border border-slate-250 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-healthcare-500 font-semibold"
-                    placeholder="Jane Doe"
+                    placeholder="Valli Murugan"
                   />
                 </div>
                 <div>

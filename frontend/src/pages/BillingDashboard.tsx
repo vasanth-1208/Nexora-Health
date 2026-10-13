@@ -376,7 +376,7 @@ const BillingDashboard: React.FC = () => {
                 }
               }}
               className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-250 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-healthcare-500 focus:border-healthcare-500 transition"
-              placeholder="Search patient by Name (e.g. Jane Smith), Patient ID (e.g. P1002), or Phone..."
+              placeholder="Search patient by Name (e.g. Selvam R. / Kavitha S.), Patient ID (e.g. P1002), or Phone..."
             />
             {searchQuery && (
               <button
