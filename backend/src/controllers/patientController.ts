@@ -44,9 +44,8 @@ export const registerPatient = async (req: Request, res: Response) => {
     const seq = await getNextSequence('patientId', 1000);
     const patientId = `P${seq}`;
 
-    // Hash the initial DOB-based password
-    const rawDobPassword = formatDOBForPassword(dob);
-    const passwordHash = await bcrypt.hash(rawDobPassword, 10);
+    // Hash the initial default password (12345)
+    const passwordHash = await bcrypt.hash('12345', 10);
 
     // Create User record
     const user = await User.create({
@@ -86,7 +85,7 @@ export const registerPatient = async (req: Request, res: Response) => {
     await PatientTimelineService.logEvent(
       patient._id,
       'REGISTRATION',
-      `Patient registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
+      `Patient registered with ID ${patientId}. Default initial password set as 12345.`,
       operatorName
     );
 
@@ -256,8 +255,8 @@ export const selfRegisterPatient = async (req: Request, res: Response) => {
     const seq = await getNextSequence('patientId', 1000);
     const patientId = `P${seq}`;
 
-    const rawDobPassword = formatDOBForPassword(dob);
-    const passwordHash = await bcrypt.hash(rawDobPassword, 10);
+    // Hash the initial default password (12345)
+    const passwordHash = await bcrypt.hash('12345', 10);
 
     const user = await User.create({
       username: patientId,
@@ -292,7 +291,7 @@ export const selfRegisterPatient = async (req: Request, res: Response) => {
     await PatientTimelineService.logEvent(
       patient._id,
       'REGISTRATION',
-      `Patient self-registered with ID ${patientId}. Initial password set as DOB (DDMMYYYY).`,
+      `Patient self-registered with ID ${patientId}. Default initial password set as 12345.`,
       'Self Registered'
     );
 

@@ -315,29 +315,30 @@ All test accounts are pre-seeded and ready for immediate evaluation:
 
 | Role | Username | Password | Notes / Specialty |
 |---|---|---|---|
-| **System Admin** | `admin` | `admin123` | Dr. K. Senthil Nathan — Full hospital configuration & KPIs |
-| **Receptionist** | `reception` | `reception123` | P. Malarvizhi — Patient check-in & bed reservations |
-| **Doctor (Internal Medicine)** | `doctor1` | `doctor123` | Dr. S. Karthikeyan (`/doctor/dashboard` & `/doctor/admissions`) |
-| **Doctor (Cardiology)** | `doctor2` | `doctor123` | Dr. Meenakshi Sundaram (`/doctor/dashboard` & `/doctor/admissions`) |
-| **Doctor (Orthopedics)** | `doctor3` | `doctor123` | Dr. R. Vigneshwaran (`/doctor/dashboard` & `/doctor/admissions`) |
-| **Staff Nurse** | `nurse` | `nurse123` | Vimala Devi M. — Triage vitals & clinical intake |
-| **Ward Staff** | `ward` | `ward123` | S. Arumugam — Ward bed stays & physical arrival |
-| **Pharmacist** | `pharmacy` | `pharmacy123` | G. Muthukumar — Dispensary & inventory reconciliation |
-| **Cashier / Billing Officer** | `billing` | `billing123` | K. Vijayalakshmi — Dynamic invoices & cashier desk |
-| **Patient** | `P1001` | `12051990` | Murugan K. (Chennai - DOB: 12/05/1990) |
-| **Patient (Inpatient CCU)** | `P1002` | `25081985` | Selvam R. (Coimbatore - Bed CCU-001) |
-| **Patient (Inpatient Ortho)** | `P1003` | `14021995` | Kavitha S. (Madurai - Bed ORTH-001) |
+| **System Admin** | `admin` | `12345` | Dr. K. Senthil Nathan — Full hospital configuration & KPIs |
+| **Receptionist** | `reception` | `12345` | P. Malarvizhi — Patient check-in & bed reservations |
+| **Doctor (Internal Medicine)** | `doctor1` | `12345` | Dr. S. Karthikeyan (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Doctor (Cardiology)** | `doctor2` | `12345` | Dr. Meenakshi Sundaram (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Doctor (Orthopedics)** | `doctor3` | `12345` | Dr. R. Vigneshwaran (`/doctor/dashboard` & `/doctor/admissions`) |
+| **Staff Nurse** | `nurse` | `12345` | Vimala Devi M. — Triage vitals & clinical intake |
+| **Ward Staff** | `ward` | `12345` | S. Arumugam — Ward bed stays & physical arrival |
+| **Pharmacist** | `pharmacy` | `12345` | G. Muthukumar — Dispensary & inventory reconciliation |
+| **Cashier / Billing Officer** | `billing` | `12345` | K. Vijayalakshmi — Dynamic invoices & cashier desk |
+| **Patient** | `P1001` | `12345` | Murugan K. (Chennai - Outpatient / Inpatient portal) |
+| **Patient (Inpatient CCU)** | `P1002` | `12345` | Selvam R. (Coimbatore - Bed CCU-001) |
+| **Patient (Inpatient Ortho)** | `P1003` | `12345` | Kavitha S. (Madurai - Bed ORTH-001) |
+| **All Other Patients** | `P1004`–`P1035` | `12345` | All 35 pre-seeded Tamil Nadu patients across districts |
 
 ### 🔬 Specialized Diagnostic Lab Desks
 
 | Diagnostic Lab Desk | User ID | Password | Dedicated Route | Modality Scope |
 |---|---|---|---|---|
-| **🩻 X-Ray Lab Desk** | `xray` | `Password@123` | `/diagnostics/xray` | Extremity, bone, PA view, chest X-rays (K. Selvaraj) |
-| **⚡ CT Scan Imaging Desk** | `ctscan` | `Password@123` | `/diagnostics/ctscan` | CT brain, CT chest, pelvis tomography (R. Anand) |
-| **🩸 Pathology & Blood Lab** | `pathology` | `Password@123` | `/diagnostics/pathology` | Blood CBC, LFT, KFT/RFT, lipid profiles (Dr. Kavitha S.) |
-| **❤️ Cardiology & ECG Lab** | `ecg` | `Password@123` | `/diagnostics/cardiology` | 12-lead ECG, 2D Echocardiogram, cardiac tests (T. Shanthi) |
-| **🧲 MRI Scan Suite Desk** | `mri` | `Password@123` | `/diagnostics/mri` | MRI brain, MRI lumbar/cervical spine (M. Saravanan) |
-| **🌐 All Labs Supervisor** | `diagnostics` | `Password@123` | `/diagnostics/dashboard` | M. Balasubramanian — Full oversight across all modalities |
+| **🩻 X-Ray Lab Desk** | `xray` | `12345` | `/diagnostics/xray` | Extremity, bone, PA view, chest X-rays (K. Selvaraj) |
+| **⚡ CT Scan Imaging Desk** | `ctscan` | `12345` | `/diagnostics/ctscan` | CT brain, CT chest, pelvis tomography (R. Anand) |
+| **🩸 Pathology & Blood Lab** | `pathology` | `12345` | `/diagnostics/pathology` | Blood CBC, LFT, KFT/RFT, lipid profiles (Dr. Kavitha S.) |
+| **❤️ Cardiology & ECG Lab** | `ecg` | `12345` | `/diagnostics/cardiology` | 12-lead ECG, 2D Echocardiogram, cardiac tests (T. Shanthi) |
+| **🧲 MRI Scan Suite Desk** | `mri` | `12345` | `/diagnostics/mri` | MRI brain, MRI lumbar/cervical spine (M. Saravanan) |
+| **🌐 All Labs Supervisor** | `diagnostics` | `12345` | `/diagnostics/dashboard` | M. Balasubramanian — Full oversight across all modalities |
 
 ---
 

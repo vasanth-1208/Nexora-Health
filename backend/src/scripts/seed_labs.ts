@@ -17,7 +17,7 @@ async function seedLabs() {
   }
 
   await mongoose.connect(uri);
-  const hash = await bcrypt.hash('Password@123', 10);
+  const hash = await bcrypt.hash('12345', 10);
 
   const labAccounts = [
     { username: 'xray', name: 'X-Ray Imaging Desk (K. Selvaraj)', role: 'DIAGNOSTICS' as const, labType: 'XRAY', email: 'xray@nexora.in', phone: '9840123460' },

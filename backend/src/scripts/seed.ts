@@ -71,16 +71,17 @@ async function seedEnterpriseHospital() {
     await EmergencyAlert.deleteMany({});
     await Notification.deleteMany({});
 
-    console.log('Generating bcrypt password hashes...');
-    const adminHash = await bcrypt.hash('admin123', 10);
-    const receptionHash = await bcrypt.hash('reception123', 10);
-    const doctorHash = await bcrypt.hash('doctor123', 10);
-    const nurseHash = await bcrypt.hash('nurse123', 10);
-    const wardHash = await bcrypt.hash('ward123', 10);
-    const diagHash = await bcrypt.hash('Password@123', 10);
-    const pharmHash = await bcrypt.hash('pharmacy123', 10);
-    const billHash = await bcrypt.hash('billing123', 10);
-    const defaultPatientHash = await bcrypt.hash('12051990', 10);
+    console.log('Generating bcrypt password hashes (default 12345 for all accounts)...');
+    const universalPasswordHash = await bcrypt.hash('12345', 10);
+    const adminHash = universalPasswordHash;
+    const receptionHash = universalPasswordHash;
+    const doctorHash = universalPasswordHash;
+    const nurseHash = universalPasswordHash;
+    const wardHash = universalPasswordHash;
+    const diagHash = universalPasswordHash;
+    const pharmHash = universalPasswordHash;
+    const billHash = universalPasswordHash;
+    const defaultPatientHash = universalPasswordHash;
 
     // =========================================================================
     // 1. HOSPITAL DEPARTMENTS (8 Major Specialties)
@@ -589,8 +590,7 @@ async function seedEnterpriseHospital() {
       const p = tnNames[i];
       const pIdCode = `P${1001 + i}`;
       const dobDate = new Date(p.dob);
-      const dobPass = `${String(dobDate.getDate()).padStart(2, '0')}${String(dobDate.getMonth() + 1).padStart(2, '0')}${dobDate.getFullYear()}`;
-      const pHash = await bcrypt.hash(dobPass, 10);
+      const pHash = defaultPatientHash; // Default password is 12345 for all patient accounts
       
       const pDaysAgo = Math.min(29, Math.floor((tnNames.length - 1 - i) * (29 / (tnNames.length - 1))));
       const regTimestamp = getPastDate(pDaysAgo, 9 + (i % 8), 15);

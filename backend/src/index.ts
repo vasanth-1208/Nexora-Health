@@ -42,7 +42,7 @@ import { User } from './models';
 
 const ensureLabUsers = async () => {
   try {
-    const defaultHash = await bcrypt.hash('Password@123', 10);
+    const defaultHash = await bcrypt.hash('12345', 10);
     const labUsers = [
       {
         username: 'diagnostics',

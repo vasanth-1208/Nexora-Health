@@ -90,8 +90,8 @@ const Register: React.FC = () => {
               </div>
             </div>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2 text-slate-500">
-              <p>🔑 Initial Password: <span className="text-slate-900">Your DOB in DDMMYYYY format</span></p>
-              <p className="text-[10px] font-semibold text-slate-400">(e.g., if date of birth is July 24, 1998, password will be 24071998)</p>
+              <p>🔑 Default Initial Password: <span className="text-slate-900 font-mono font-bold">12345</span></p>
+              <p className="text-[10px] font-semibold text-slate-400">(Sign in with your User ID Code and default password 12345)</p>
             </div>
             <button
               onClick={() => navigate('/login')}
