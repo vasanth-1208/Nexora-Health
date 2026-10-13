@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Consultation, Payment, Patient, Doctor, PatientTimeline, User, DoctorReferral } from '../models';
 import { emitSocketEvent } from '../config/socket';
 
@@ -230,19 +231,32 @@ export const updateConsultationStatus = async (req: Request, res: Response) => {
 export const getDoctorConsultations = async (req: Request, res: Response) => {
   try {
     const { doctorId } = req.params;
+    let effectiveDocId: any = doctorId;
+
+    // Resolve if doctorId passed is username (e.g. 'doctor1') or employeeId
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      const u = await User.findOne({ username: doctorId });
+      if (u) {
+        const d = await Doctor.findOne({ userId: u._id });
+        if (d) effectiveDocId = d._id;
+      } else {
+        const d = await Doctor.findOne({ employeeId: new RegExp(`^${doctorId}$`, 'i') });
+        if (d) effectiveDocId = d._id;
+      }
+    }
 
     // Self-healing: if any DoctorReferrals exist for this referee doctor without a consultation, create it
-    const incomingReferrals = await DoctorReferral.find({ toDoctorId: doctorId });
+    const incomingReferrals = await DoctorReferral.find({ toDoctorId: effectiveDocId });
     for (const ref of incomingReferrals) {
       const existing = await Consultation.findOne({
         patientId: ref.patientId,
-        doctorId,
+        doctorId: effectiveDocId,
         referralId: ref._id,
       });
       if (!existing) {
         await Consultation.create({
           patientId: ref.patientId,
-          doctorId,
+          doctorId: effectiveDocId,
           status: ref.status === 'COMPLETED' ? 'COMPLETED' : 'WAITING',
           paymentStatus: 'PENDING',
           paymentId: ref.paymentId,
@@ -252,7 +266,7 @@ export const getDoctorConsultations = async (req: Request, res: Response) => {
           referralNotes: ref.notes,
         });
         await Patient.findByIdAndUpdate(ref.patientId, {
-          $addToSet: { assignedDoctors: doctorId }
+          $addToSet: { assignedDoctors: effectiveDocId }
         });
       } else if (existing.status === 'COMPLETED' && ref.status === 'PENDING') {
         ref.status = 'COMPLETED';
@@ -260,7 +274,7 @@ export const getDoctorConsultations = async (req: Request, res: Response) => {
       }
     }
 
-    const consultations = await Consultation.find({ doctorId })
+    const consultations = await Consultation.find({ doctorId: effectiveDocId })
       .populate({
         path: 'patientId',
         populate: { path: 'userId', select: 'name phone' }

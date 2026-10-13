@@ -23,6 +23,7 @@ import {
   DoctorReferral,
   EmergencyAlert,
   Notification,
+  WardChangeRequest,
 } from '../models';
 
 dotenv.config();
@@ -70,6 +71,7 @@ async function seedEnterpriseHospital() {
     await DoctorReferral.deleteMany({});
     await EmergencyAlert.deleteMany({});
     await Notification.deleteMany({});
+    await WardChangeRequest.deleteMany({});
 
     console.log('Generating bcrypt password hashes (default 12345 for all accounts)...');
     const universalPasswordHash = await bcrypt.hash('12345', 10);
@@ -647,21 +649,62 @@ async function seedEnterpriseHospital() {
 
     // Loop through past 30 days (day 29 down to 0)
     for (let day = 29; day >= 0; day--) {
-      // Pick 1 to 2 patients per day
-      const dayPatients = patientDocs.filter((_, idx) => idx % 30 === day || (idx + 15) % 30 === day);
+      // Pick 1 to 2 patients per day for historical days, and a robust active queue for today
+      let dayPatients = patientDocs.filter((_, idx) => idx % 30 === day || (idx + 15) % 30 === day);
+      if (day === 0) {
+        dayPatients = [
+          patientDocs[0],  // P1001 -> doc1 WITH_DOCTOR
+          patientDocs[3],  // P1004 -> doc1 RECEIVED
+          patientDocs[4],  // P1005 -> doc1 WAITING
+          patientDocs[5],  // P1006 -> doc1 COMPLETED
+          patientDocs[6],  // P1007 -> doc2 RECEIVED
+          patientDocs[7],  // P1008 -> doc2 WAITING
+          patientDocs[8],  // P1009 -> doc2 COMPLETED
+          patientDocs[9],  // P1010 -> doc3 RECEIVED
+          patientDocs[10], // P1011 -> doc3 WAITING
+          patientDocs[11], // P1012 -> doc3 COMPLETED
+        ];
+      }
 
       for (const pat of dayPatients) {
-        const doc = allDoctors[Math.floor(Math.random() * allDoctors.length)];
-        const consultTime = getPastDate(day, 10 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 50));
-        
-        // Consult status: if day 0 (today), make some in progress/waiting, otherwise COMPLETED
-        let cStatus: 'WAITING' | 'WITH_DOCTOR' | 'COMPLETED' = 'COMPLETED';
+        let doc = allDoctors[Math.floor(Math.random() * allDoctors.length)];
+        let cStatus: 'WAITING' | 'RECEIVED' | 'WITH_DOCTOR' | 'COMPLETED' = 'COMPLETED';
         if (day === 0) {
-          if (pat.patientId === 'P1004') cStatus = 'WAITING';
-          else if (pat.patientId === 'P1001') cStatus = 'WITH_DOCTOR';
-          else cStatus = 'COMPLETED';
+          if (pat.patientId === 'P1001') {
+            doc = doc1;
+            cStatus = 'WITH_DOCTOR';
+          } else if (pat.patientId === 'P1004') {
+            doc = doc1;
+            cStatus = 'RECEIVED';
+          } else if (pat.patientId === 'P1005') {
+            doc = doc1;
+            cStatus = 'WAITING';
+          } else if (pat.patientId === 'P1006') {
+            doc = doc1;
+            cStatus = 'COMPLETED';
+          } else if (pat.patientId === 'P1007') {
+            doc = doc2;
+            cStatus = 'RECEIVED';
+          } else if (pat.patientId === 'P1008') {
+            doc = doc2;
+            cStatus = 'WAITING';
+          } else if (pat.patientId === 'P1009') {
+            doc = doc2;
+            cStatus = 'COMPLETED';
+          } else if (pat.patientId === 'P1010') {
+            doc = doc3;
+            cStatus = 'RECEIVED';
+          } else if (pat.patientId === 'P1011') {
+            doc = doc3;
+            cStatus = 'WAITING';
+          } else if (pat.patientId === 'P1012') {
+            doc = doc3;
+            cStatus = 'COMPLETED';
+          }
         }
+        await Patient.findByIdAndUpdate(pat._id, { $addToSet: { assignedDoctors: doc._id } });
 
+        const consultTime = getPastDate(day, 10 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 50));
         const bpSystolic = 115 + Math.floor(Math.random() * 30);
         const bpDiastolic = 75 + Math.floor(Math.random() * 15);
         const hr = 70 + Math.floor(Math.random() * 20);
@@ -933,12 +976,13 @@ async function seedEnterpriseHospital() {
       });
     }
 
-    // 8 Active Inpatients currently occupied in beds today
+    // 9 Active Inpatients currently occupied in beds today
     const activeInpatientConfigs = [
       { pIdx: 1, bedCode: 'CCU-001', ward: wardCCU, doc: doc2, daysAgo: 3, deposit: 5000 },
       { pIdx: 2, bedCode: 'ORTH-001', ward: wardOrthoJoint, doc: doc3, daysAgo: 2, deposit: 4000 },
       { pIdx: 5, bedCode: 'GM-M-001', ward: wardGMMale, doc: doc1, daysAgo: 2, deposit: 3000 },
       { pIdx: 6, bedCode: 'CGW-001', ward: wardCardioGen, doc: doc2, daysAgo: 1, deposit: 3500 },
+      { pIdx: 7, bedCode: 'GM-F-001', ward: wardGMFemale, doc: doc1, daysAgo: 1, deposit: 3000 },
       { pIdx: 9, bedCode: 'NICU-001', ward: wardNeuroICU, doc: doc4, daysAgo: 2, deposit: 5000 },
       { pIdx: 13, bedCode: 'PULM-001', ward: wardPulm, doc: doc7, daysAgo: 1, deposit: 3000 },
       { pIdx: 15, bedCode: 'ORT-001', ward: wardOrthoGen, doc: doc3, daysAgo: 0, deposit: 3000 },
@@ -972,6 +1016,16 @@ async function seedEnterpriseHospital() {
 
       p.currentAdmissionId = adm._id as any;
       await p.save();
+
+      if (act.pIdx === 5) {
+        await WardChangeRequest.create({
+          admissionId: adm._id,
+          patientId: p._id,
+          requestedWardId: wardStepDown._id,
+          status: 'PENDING',
+          requestedByDoctorId: doc1._id,
+        });
+      }
 
       // Admission Deposit Payment
       await Payment.create({
