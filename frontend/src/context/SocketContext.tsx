@@ -42,14 +42,32 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Connect to WebSocket Server with JWT Authentication Token
     const token = localStorage.getItem('token');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const socketHost = apiUrl.replace(/\/api$/, '');
+    const rawApiUrl = import.meta.env.VITE_API_URL;
+    let socketHost: string;
+    if (rawApiUrl) {
+      socketHost = rawApiUrl.replace(/\/api$/, '') || window.location.origin;
+    } else if (
+      import.meta.env.PROD ||
+      (typeof window !== 'undefined' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1')
+    ) {
+      socketHost = window.location.origin;
+    } else {
+      socketHost = 'http://localhost:5000';
+    }
 
     const socketInstance = io(socketHost, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       auth: {
         token: token || undefined,
       },
+      reconnectionAttempts: 5,
+      timeout: 10000,
+    });
+
+    socketInstance.on('connect_error', (err) => {
+      console.warn('Socket note (polling fallback active):', err.message);
     });
 
     setSocket(socketInstance);

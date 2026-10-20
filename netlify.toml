@@ -1,4 +1,4 @@
-# Netlify Configuration for Nexora Health Web Application
+# Netlify Configuration for Nexora Health Unified Web Application
 [build]
   base = "frontend"
   publish = "dist"
@@ -7,6 +7,11 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"
