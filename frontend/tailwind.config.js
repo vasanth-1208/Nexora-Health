@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         healthcare: {
           50: '#f0f9ff',
@@ -20,6 +23,11 @@ export default {
           900: '#0c4a6e',
           950: '#082f49',
         }
+      },
+      boxShadow: {
+        'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        'elevated': '0 10px 30px -5px rgba(2, 132, 199, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04)',
+        'glow': '0 0 25px -5px rgba(14, 165, 233, 0.35)',
       }
     },
   },

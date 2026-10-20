@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base HTML and Body Styles */
+/* Base HTML and Body Styles - Unified Modern Medical Theme */
 html,
 body {
   margin: 0;
@@ -11,12 +11,14 @@ body {
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  text-rendering: optimizeLegibility;
+  font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.011em;
 }
 
 ::selection {
   background-color: #bae6fd;
-  color: #0c4a6e;
+  color: #0369a1;
 }
 
 /* Custom Healthcare Dashboard Scrollbar */

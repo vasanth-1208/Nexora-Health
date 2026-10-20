@@ -32,6 +32,7 @@ const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!user) {
     navigate('/login');
@@ -43,18 +44,24 @@ const DashboardLayout: React.FC = () => {
     navigate('/login');
   };
 
+  const handleGlobalRefresh = () => {
+    setIsRefreshing(true);
+    window.dispatchEvent(new Event('nexora-refresh-data'));
+    setTimeout(() => setIsRefreshing(false), 600);
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'ADMIN': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'DOCTOR': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'NURSE': return 'bg-teal-100 text-teal-800 border-teal-200';
-      case 'RECEPTION': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-      case 'WARD_STAFF': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'DIAGNOSTICS': return 'bg-cyan-100 text-cyan-800 border-cyan-200';
-      case 'PHARMACY': return 'bg-pink-100 text-pink-800 border-pink-200';
-      case 'BILLING': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'PATIENT': return 'bg-slate-100 text-slate-800 border-slate-200';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200';
+      case 'ADMIN': return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'DOCTOR': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'NURSE': return 'bg-teal-50 text-teal-700 border-teal-200';
+      case 'RECEPTION': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'WARD_STAFF': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'DIAGNOSTICS': return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+      case 'PHARMACY': return 'bg-pink-50 text-pink-700 border-pink-200';
+      case 'BILLING': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'PATIENT': return 'bg-slate-50 text-slate-700 border-slate-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
@@ -130,28 +137,30 @@ const DashboardLayout: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden">
+    <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden selection:bg-healthcare-100 selection:text-healthcare-800">
       {/* Real-time Emergency Alert Banner */}
       {activeEmergencies.length > 0 && (
-        <div className="bg-red-600 text-white px-4 py-3 shadow-md flex items-center justify-between animate-pulse sticky top-0 z-50">
-          <div className="flex items-center space-x-3">
-            <AlertTriangle className="h-6 w-6 text-white shrink-0" />
-            <div>
-              <span className="font-extrabold uppercase text-xs tracking-wider bg-red-800 px-2 py-0.5 rounded mr-2">
+        <div className="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-3 shadow-md flex items-center justify-between animate-pulse sticky top-0 z-50">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="p-1 bg-white/20 rounded-lg shrink-0">
+              <AlertTriangle className="h-5 w-5 text-white" />
+            </div>
+            <div className="truncate">
+              <span className="font-black uppercase text-[10px] tracking-wider bg-black/30 px-2 py-0.5 rounded-md mr-2">
                 CRITICAL EMERGENCY
               </span>
-              <span className="font-medium">
-                {activeEmergencies[0].patientName} ({activeEmergencies[0].patientIdCode}) - {activeEmergencies[0].description}
+              <span className="font-bold text-xs sm:text-sm">
+                {activeEmergencies[0].patientName} ({activeEmergencies[0].patientIdCode}) — {activeEmergencies[0].description}
               </span>
-              <span className="text-xs ml-2 opacity-80">
-                (Physician alerted: {activeEmergencies[0].doctorName})
+              <span className="text-xs ml-2 opacity-90 hidden md:inline">
+                (Attending: {activeEmergencies[0].doctorName})
               </span>
             </div>
           </div>
-          {(user.role === 'DOCTOR' || user.role === 'NURSE') && (
+          {(user.role === 'DOCTOR' || user.role === 'NURSE' || user.role === 'ADMIN') && (
             <button
               onClick={() => handleResolveEmergency(activeEmergencies[0].alertId || activeEmergencies[0]._id)}
-              className="bg-white text-red-600 hover:bg-slate-100 font-bold px-3 py-1 rounded-lg text-xs transition shrink-0"
+              className="bg-white text-rose-700 hover:bg-slate-100 font-extrabold px-3 py-1.5 rounded-xl text-xs transition shrink-0 shadow-xs ml-3"
             >
               Mark Resolved
             </button>
@@ -163,158 +172,167 @@ const DashboardLayout: React.FC = () => {
       <div className="flex flex-1 overflow-hidden relative">
         {/* Sidebar */}
         <aside
-          className={`bg-white text-slate-600 border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden ${
+          className={`bg-white text-slate-600 border-r border-slate-200/80 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden ${
             sidebarOpen ? 'w-64' : 'w-0 border-r-0'
           }`}
         >
           <div className="flex flex-col h-full overflow-hidden justify-between w-64">
             <div className="flex flex-col flex-1 overflow-hidden">
-              {/* Logo & Collapse Button */}
-              <div className="px-5 py-5 border-b border-slate-200 flex items-center justify-between shrink-0">
-                <div className="flex items-center space-x-2 min-w-0">
-                  <Activity className="h-6 w-6 text-healthcare-650 shrink-0" />
-                  <span className="font-extrabold text-lg tracking-tight text-slate-900 truncate">NEXORA HEALTH</span>
+              {/* Brand Header & Sidebar Collapse Button */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-healthcare-600 to-sky-500 flex items-center justify-center text-white shadow-xs">
+                    <Activity className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="font-black text-sm tracking-tight text-slate-900 block truncate leading-none">
+                      NEXORA HEALTH
+                    </span>
+                    <span className="text-[9px] font-bold text-healthcare-600 uppercase tracking-widest block mt-0.5">
+                      Smart Operations
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
                   title="Hide menu column"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0 ml-1"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0 ml-1 cursor-pointer"
                 >
-                  <PanelLeftClose className="h-5 w-5" />
+                  <PanelLeftClose className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Nav Menu */}
-              <nav className="mt-6 px-4 space-y-1 flex-1 overflow-y-auto no-scrollbar">
+              {/* Navigation Links */}
+              <nav className="mt-4 px-3 space-y-1 flex-1 overflow-y-auto no-scrollbar">
                 {navLinks.map((link) => {
                   const isActive = location.pathname === link.path;
                   const Icon = link.icon;
-                const isNotificationLink = user.role === 'ADMIN' && link.path === '/admin/notifications';
+                  const isNotificationLink = user.role === 'ADMIN' && link.path === '/admin/notifications';
 
-                return (
-                  <React.Fragment key={link.path}>
-                    {isNotificationLink && (
-                      <div className="border-t border-slate-200 my-4" />
-                    )}
-                    <Link
-                      to={link.path}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-semibold transition ${
-                        isActive
-                          ? 'bg-healthcare-50 text-healthcare-650 font-bold border-l-2 border-healthcare-500 rounded-l-none'
-                          : 'hover:bg-slate-50 hover:text-slate-900'
-                      }`}
-                    >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span>{link.name}</span>
-                    </Link>
-                  </React.Fragment>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* User Footer Panel */}
-          <div className="p-4 border-t border-slate-200">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-650 border border-slate-200">
-                <User className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800 truncate">{user.name}</p>
-                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border mt-0.5 ${getRoleBadgeColor(user.role)}`}>
-                  {user.role === 'DIAGNOSTICS' && user.labType && user.labType !== 'ALL'
-                    ? `${user.labType} LAB`
-                    : user.role}
-                </span>
-              </div>
+                  return (
+                    <React.Fragment key={link.path}>
+                      {isNotificationLink && (
+                        <div className="border-t border-slate-100 my-3" />
+                      )}
+                      <Link
+                        to={link.path}
+                        className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-bold transition duration-150 ${
+                          isActive
+                            ? 'bg-healthcare-50/90 text-healthcare-700 font-black border-l-4 border-healthcare-600 rounded-l-none shadow-xs'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <Icon className={`h-4.5 w-4.5 shrink-0 ${isActive ? 'text-healthcare-600' : 'text-slate-400'}`} />
+                        <span className="truncate">{link.name}</span>
+                      </Link>
+                    </React.Fragment>
+                  );
+                })}
+              </nav>
             </div>
-            <button
-              onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center space-x-2 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 hover:border-rose-200 text-slate-650 py-2 rounded-lg text-xs font-bold transition"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Log Out</span>
-            </button>
-          </div>
-        </div>
-      </aside>
 
-        {/* Content Panel */}
+            {/* User Footer Card in Sidebar */}
+            <div className="p-3.5 border-t border-slate-100 bg-slate-50/60">
+              <div className="flex items-center space-x-3 bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="h-9 w-9 rounded-xl bg-healthcare-50 text-healthcare-700 font-bold flex items-center justify-center shrink-0 border border-healthcare-100">
+                  <User className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate leading-snug">{user.name}</p>
+                  <span className={`inline-block text-[9px] font-black px-1.5 py-0.5 rounded border mt-0.5 uppercase tracking-wide ${getRoleBadgeColor(user.role)}`}>
+                    {user.role === 'DIAGNOSTICS' && user.labType && user.labType !== 'ALL'
+                      ? `${user.labType} LAB`
+                      : user.role}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="mt-2.5 w-full flex items-center justify-center space-x-2 bg-white hover:bg-rose-50 hover:text-rose-600 border border-slate-200/90 hover:border-rose-200 text-slate-600 py-2 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-          {/* Header */}
-          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
+          {/* Top Header Bar */}
+          <header className="h-15 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
             <div className="flex items-center space-x-3">
-              {/* Show / Hide Sidebar Column Toggle Button right next to NEXORA HEALTH */}
+              {/* Show / Hide Sidebar Toggle */}
               <button
                 type="button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                title={sidebarOpen ? "Hide sidebar column" : "Show sidebar column"}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border active:scale-95 shrink-0 ${
+                title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border active:scale-95 shrink-0 cursor-pointer ${
                   sidebarOpen
                     ? 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
-                    : 'bg-healthcare-600 hover:bg-healthcare-700 text-white border-healthcare-600 ring-2 ring-healthcare-400/30 shadow-sm'
+                    : 'bg-healthcare-600 hover:bg-healthcare-700 text-white border-healthcare-600 shadow-xs'
                 }`}
               >
                 {sidebarOpen ? (
                   <>
-                    <PanelLeftClose className="h-4 w-4 text-slate-500" />
-                    <span className="hidden sm:inline">Hide Column</span>
+                    <PanelLeftClose className="h-3.5 w-3.5 text-slate-500" />
+                    <span className="hidden sm:inline">Hide Sidebar</span>
                   </>
                 ) : (
                   <>
-                    <PanelLeftOpen className="h-4 w-4 text-white" />
-                    <span>Show Column</span>
+                    <PanelLeftOpen className="h-3.5 w-3.5 text-white" />
+                    <span>Menu</span>
                   </>
                 )}
               </button>
 
-              <div className="flex items-center space-x-1.5 pl-1">
-                <Activity className="h-5 w-5 text-healthcare-600" />
-                <span className="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight whitespace-nowrap">
-                  NEXORA HEALTH
+              <div className="flex items-center space-x-2 pl-1">
+                <span className="font-extrabold text-slate-800 text-xs sm:text-sm tracking-tight truncate">
+                  {user.role} Operations Hub
                 </span>
               </div>
               
               <span className="text-slate-300 hidden md:inline">|</span>
 
-              <div className="hidden md:block">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Unified Operations Portal
-                </span>
+              <div className="hidden md:flex items-center space-x-1.5 text-[11px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Operational Network</span>
               </div>
             </div>
 
+            {/* Right Action Icons */}
             <div className="flex items-center space-x-2 relative">
               {/* Global Page Refresh Action */}
               <button
-                onClick={() => window.dispatchEvent(new Event('nexora-refresh-data'))}
+                onClick={handleGlobalRefresh}
                 title="Refresh Analytics & Lists"
-                className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-healthcare-600 transition"
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-healthcare-600 transition cursor-pointer"
               >
-                <RefreshCw className="h-4.5 w-4.5" />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin text-healthcare-600' : ''}`} />
               </button>
 
               {/* Notification Center */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 rounded-full hover:bg-slate-100 text-slate-600 relative transition"
+                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 hover:text-healthcare-600 relative transition cursor-pointer"
+                  title="Notifications"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4.5 w-4.5" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
                   )}
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 shadow-2xl rounded-xl py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200/90 shadow-2xl rounded-2xl py-2 z-50 max-h-96 overflow-y-auto animate-in fade-in duration-150">
                     <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
-                      <span className="font-bold text-sm text-slate-800">Notifications</span>
+                      <span className="font-black text-xs text-slate-900 uppercase tracking-wide">Notifications</span>
                       {unreadCount > 0 && (
                         <button
                           onClick={clearNotifications}
-                          className="text-xs font-semibold text-healthcare-600 hover:text-healthcare-750"
+                          className="text-[11px] font-bold text-healthcare-600 hover:text-healthcare-700 transition"
                         >
                           Mark all read
                         </button>
@@ -322,8 +340,8 @@ const DashboardLayout: React.FC = () => {
                     </div>
                     <div className="divide-y divide-slate-100">
                       {notifications.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-xs text-slate-400">
-                          No notifications.
+                        <div className="px-4 py-6 text-center text-xs text-slate-400 font-medium">
+                          No unread notifications.
                         </div>
                       ) : (
                         notifications.map((n, idx) => (
@@ -331,12 +349,12 @@ const DashboardLayout: React.FC = () => {
                             key={idx}
                             className={`px-4 py-3 text-xs transition ${
                               n.type === 'EMERGENCY'
-                                ? 'bg-red-50 border-l-2 border-red-500'
+                                ? 'bg-rose-50 border-l-2 border-rose-500'
                                 : 'hover:bg-slate-50'
                             }`}
                           >
-                            <p className="text-slate-700 font-medium">{n.message}</p>
-                            <span className="text-[10px] text-slate-400 block mt-1">
+                            <p className="text-slate-800 font-semibold leading-relaxed">{n.message}</p>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-1">
                               {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -347,23 +365,21 @@ const DashboardLayout: React.FC = () => {
                 )}
               </div>
 
-              {/* User Avatar panel for mobile */}
-              <div className="flex md:hidden items-center space-x-2">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getRoleBadgeColor(user.role)}`}>
-                  {user.role}
-                </span>
+              {/* Mobile Logout Icon */}
+              <div className="flex md:hidden items-center pl-1">
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-full hover:bg-slate-100 text-red-600"
+                  className="p-2 rounded-xl hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition"
+                  title="Log Out"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </header>
 
-          {/* Page Body content */}
-          <main className="flex-1 p-6 overflow-y-auto">
+          {/* Main Workspace Body Content */}
+          <main className="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-50">
             <Outlet />
           </main>
         </div>
