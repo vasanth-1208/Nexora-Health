@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticateToken, requireRole, requireOwnershipOrStaff } from '../middleware/auth';
 import * as authCtrl from '../controllers/authController';
 import * as userCtrl from '../controllers/userController';
@@ -20,7 +20,7 @@ const router = Router();
 // ==========================================
 // PUBLIC ROUTES (Unauthenticated)
 // ==========================================
-router.get('/health', (_req, res) => {
+router.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 router.post('/auth/login', authCtrl.login);
