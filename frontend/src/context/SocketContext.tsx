@@ -45,14 +45,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const rawApiUrl = import.meta.env.VITE_API_URL;
     let socketHost: string;
     if (rawApiUrl) {
-      socketHost = rawApiUrl.replace(/\/api$/, '') || window.location.origin;
+      socketHost = rawApiUrl.replace(/\/api$/, '') || 'https://nexora-health-backend.onrender.com';
     } else if (
       import.meta.env.PROD ||
       (typeof window !== 'undefined' &&
         window.location.hostname !== 'localhost' &&
         window.location.hostname !== '127.0.0.1')
     ) {
-      socketHost = window.location.origin;
+      socketHost = 'https://nexora-health-backend.onrender.com';
     } else {
       socketHost = 'http://localhost:5000';
     }
