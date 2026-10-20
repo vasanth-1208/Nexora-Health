@@ -298,7 +298,14 @@ export const getDoctorConsultations = async (req: Request, res: Response) => {
 export const getPatientAppointments = async (req: Request, res: Response) => {
   try {
     const { patientId } = req.params;
-    const consultations = await Consultation.find({ patientId })
+    let queryPatientId: any = patientId;
+    if (patientId && patientId.startsWith('P') && !isNaN(Number(patientId.substring(1)))) {
+      const p = await Patient.findOne({ patientId });
+      if (p) {
+        queryPatientId = p._id;
+      }
+    }
+    const consultations = await Consultation.find({ patientId: queryPatientId })
       .populate({
         path: 'doctorId',
         populate: [

@@ -9,13 +9,21 @@ import {
   PatientTimeline,
   Bed,
   Invoice,
+  Patient,
 } from '../models';
 import { emitSocketEvent } from '../config/socket';
 
 export const getPendingPayments = async (req: Request, res: Response) => {
   try {
-    const { patientId } = req.params; // DB _id of Patient
-    const payments = await Payment.find({ patientId, status: 'PENDING' }).sort({ createdAt: -1 });
+    const { patientId } = req.params; // Can be DB _id of Patient or patientId custom code
+    let queryPatientId: any = patientId;
+    if (patientId && patientId.startsWith('P') && !isNaN(Number(patientId.substring(1)))) {
+      const p = await Patient.findOne({ patientId });
+      if (p) {
+        queryPatientId = p._id;
+      }
+    }
+    const payments = await Payment.find({ patientId: queryPatientId, status: 'PENDING' }).sort({ createdAt: -1 });
     return res.status(200).json(payments);
   } catch (error: any) {
     console.error('Get pending payments error:', error);
@@ -26,7 +34,14 @@ export const getPendingPayments = async (req: Request, res: Response) => {
 export const getPaymentHistory = async (req: Request, res: Response) => {
   try {
     const { patientId } = req.params;
-    const payments = await Payment.find({ patientId, status: 'PAID' }).sort({ createdAt: -1 });
+    let queryPatientId: any = patientId;
+    if (patientId && patientId.startsWith('P') && !isNaN(Number(patientId.substring(1)))) {
+      const p = await Patient.findOne({ patientId });
+      if (p) {
+        queryPatientId = p._id;
+      }
+    }
+    const payments = await Payment.find({ patientId: queryPatientId, status: 'PAID' }).sort({ createdAt: -1 });
     return res.status(200).json(payments);
   } catch (error: any) {
     console.error('Get payment history error:', error);

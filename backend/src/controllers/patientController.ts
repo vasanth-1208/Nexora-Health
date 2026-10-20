@@ -202,8 +202,15 @@ export const getAllPatients = async (req: Request, res: Response) => {
 
 export const getPatientTimeline = async (req: Request, res: Response) => {
   try {
-    const { patientId } = req.params; // DB Patient _id
-    const timeline = await PatientTimeline.find({ patientId }).sort({ timestamp: 1 });
+    const { patientId } = req.params; // Can be DB Patient _id or patientId custom code
+    let queryPatientId: any = patientId;
+    if (patientId && patientId.startsWith('P') && !isNaN(Number(patientId.substring(1)))) {
+      const p = await Patient.findOne({ patientId });
+      if (p) {
+        queryPatientId = p._id;
+      }
+    }
+    const timeline = await PatientTimeline.find({ patientId: queryPatientId }).sort({ timestamp: 1 });
     return res.status(200).json(timeline);
   } catch (error: any) {
     console.error('Get patient timeline error:', error);

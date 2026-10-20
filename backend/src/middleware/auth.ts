@@ -9,6 +9,7 @@ export interface AuthenticatedRequest extends Request {
     username: string; // Employee ID or Patient ID
     role: string;
     name: string;
+    patientDocId?: string; // Database Patient _id
   };
 }
 
@@ -29,6 +30,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
       username: decoded.username,
       role: decoded.role,
       name: decoded.name,
+      patientDocId: decoded.patientDocId,
     };
     next();
   });
@@ -69,7 +71,12 @@ export const requireOwnershipOrStaff = (
 
     if (req.user.role === 'PATIENT') {
       const target = req.params.patientId || req.params.id || req.params.targetId;
-      if (target && target !== req.user.userId && target !== req.user.username) {
+      if (
+        target &&
+        target !== req.user.userId &&
+        target !== req.user.username &&
+        target !== req.user.patientDocId
+      ) {
         return res.status(403).json({ message: 'Access denied: You are only authorized to access your own medical records.' });
       }
     }

@@ -222,7 +222,14 @@ export const updatePharmacyQueueStatus = async (req: Request, res: Response) => 
 export const getPatientPrescriptions = async (req: Request, res: Response) => {
   try {
     const { patientId } = req.params;
-    const prescriptions = await Prescription.find({ patientId })
+    let queryPatientId: any = patientId;
+    if (patientId && patientId.startsWith('P') && !isNaN(Number(patientId.substring(1)))) {
+      const p = await Patient.findOne({ patientId });
+      if (p) {
+        queryPatientId = p._id;
+      }
+    }
+    const prescriptions = await Prescription.find({ patientId: queryPatientId })
       .populate({
         path: 'doctorId',
         populate: { path: 'userId', select: 'name' }

@@ -70,33 +70,50 @@ const PatientDashboard: React.FC = () => {
     try {
       const pat = await request(`/patients/${user?.userId}`);
       setProfile(pat);
-      refreshData(pat._id);
+      const effectiveId = pat?.patientId || user?.userId || pat?._id;
+      const dbId = pat?._id || user?.userId;
+      refreshData(effectiveId, dbId);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load patient profile:', err);
     }
   };
 
-  const refreshData = async (dbId: string) => {
+  const refreshData = async (targetId: string, fallbackId?: string) => {
     try {
-      const appts = await request(`/consultations/patient/${dbId}`);
-      setAppointments(appts || []);
+      const fetchWithFallback = async (endpointFn: (id: string) => string) => {
+        try {
+          const res = await request(endpointFn(targetId));
+          return res || [];
+        } catch {
+          if (fallbackId && fallbackId !== targetId) {
+            try {
+              const res2 = await request(endpointFn(fallbackId));
+              return res2 || [];
+            } catch {
+              return [];
+            }
+          }
+          return [];
+        }
+      };
 
-      const rx = await request(`/prescriptions/patient/${dbId}`);
-      setPrescriptions(rx || []);
+      const [appts, rx, scansList, pendings, history, tl] = await Promise.all([
+        fetchWithFallback((id) => `/consultations/patient/${id}`),
+        fetchWithFallback((id) => `/prescriptions/patient/${id}`),
+        fetchWithFallback((id) => `/diagnostics/patient/${id}`),
+        fetchWithFallback((id) => `/payments/pending/${id}`),
+        fetchWithFallback((id) => `/payments/history/${id}`),
+        fetchWithFallback((id) => `/patients/${id}/timeline`),
+      ]);
 
-      const scansList = await request('/diagnostics');
-      setScans(scansList.filter((s: any) => s.patientId?._id === dbId) || []);
-
-      const pendings = await request(`/payments/pending/${dbId}`);
-      setBills(pendings || []);
-
-      const history = await request(`/payments/history/${dbId}`);
-      setPaidBills(history || []);
-
-      const tl = await request(`/patients/${dbId}/timeline`);
-      setTimeline(tl || []);
+      setAppointments(Array.isArray(appts) ? appts : []);
+      setPrescriptions(Array.isArray(rx) ? rx : []);
+      setScans(Array.isArray(scansList) ? scansList : []);
+      setBills(Array.isArray(pendings) ? pendings : []);
+      setPaidBills(Array.isArray(history) ? history : []);
+      setTimeline(Array.isArray(tl) ? tl : []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to refresh patient dashboard data:', err);
     }
   };
 

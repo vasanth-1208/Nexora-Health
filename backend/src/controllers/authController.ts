@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models';
+import { User, Patient } from '../models';
 
 import crypto from 'crypto';
 
@@ -52,6 +52,14 @@ export const login = async (req: Request, res: Response) => {
     user.lastLoginAt = new Date();
     await user.save();
 
+    let patientDocId: string | undefined;
+    if (user.role === 'PATIENT') {
+      const patient = await Patient.findOne({ userId: user._id });
+      if (patient) {
+        patientDocId = patient._id.toString();
+      }
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       {
@@ -60,6 +68,7 @@ export const login = async (req: Request, res: Response) => {
         role: user.role,
         name: user.name,
         labType: user.labType || 'ALL',
+        patientDocId,
       },
       JWT_SECRET,
       { expiresIn: '24h' }
